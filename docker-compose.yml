@@ -113,6 +113,45 @@ services:
     networks:
       - frontier-network
 
+  # C4ISR AI Multi-Processing Service
+  c2-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontier-c2-gateway
+    restart: unless-stopped
+    shm_size: '2gb' # Prevents PyTorch multiprocessing shared memory exhaustion
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      POSTGRES_HOST: postgis
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: frontier
+      POSTGRES_PASSWORD: frontier_c4isr_secret
+      POSTGRES_DB: frontier_c4isr
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      # CPU thread governance: prevents oversubscription thrashing across ProcessPool workers
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - frontier-network
+
 volumes:
   postgis_data:
     name: frontier_postgis_data

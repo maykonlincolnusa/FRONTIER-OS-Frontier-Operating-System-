@@ -2,6 +2,7 @@
 Project Frontier - Geospatial Module
 """
 
+from shared.geo.geofence_engine import GeofenceEngine
 from shared.geo.utils import (
     EARTH_RADIUS_METERS,
     GeoPoint,
@@ -17,6 +18,7 @@ from shared.geo.utils import (
 __all__ = [
     "EARTH_RADIUS_METERS",
     "GeoPoint",
+    "GeofenceEngine",
     "METERS_PER_NAUTICAL_MILE",
     "classify_fast_security_ring",
     "haversine_distance_meters",
@@ -25,4 +27,3 @@ __all__ = [
     "point_in_polygon",
     "validate_coordinates",
 ]
-

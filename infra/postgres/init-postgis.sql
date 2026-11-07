@@ -76,6 +76,40 @@ CREATE TABLE IF NOT EXISTS interstate_corridors (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 7. FBI Wanted Fugitives Catalog
+CREATE TABLE IF NOT EXISTS fbi_fugitives (
+    uid VARCHAR(100) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    warning_message TEXT,
+    subjects TEXT[],
+    aliases TEXT[],
+    field_offices TEXT[],
+    images JSONB DEFAULT '[]'::jsonb,
+    qdrant_indexed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 8. Target Tracks View (PostGIS Relational / Geofencing Tracking)
+CREATE OR REPLACE VIEW target_tracks AS
+SELECT 
+    target_id,
+    target_type,
+    current_ring,
+    lead_agency,
+    last_location,
+    ST_X(last_location) as longitude,
+    ST_Y(last_location) as latitude,
+    heading,
+    speed_knots,
+    altitude_feet,
+    metadata,
+    last_seen,
+    created_at
+FROM tracked_entities;
+
+
 -- 7. Spatial & Relational Indexes
 CREATE INDEX IF NOT EXISTS idx_security_rings_geom ON security_rings USING GIST (geom);
 CREATE INDEX IF NOT EXISTS idx_tracked_entities_location ON tracked_entities USING GIST (last_location);
