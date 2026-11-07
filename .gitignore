@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volume mounts / local data
+postgis_data/
+redpanda_data/
+qdrant_data/
+redis_data/
+
+# Machine Learning & Big Data artifacts
+*.pt
+*.pth
+*.onnx
+*.weights
+*.h5
+*.tflite
+data/
+downloads/
+shapefiles/
+
+# Node / Frontend
+node_modules/
+.next/
+out/
+
