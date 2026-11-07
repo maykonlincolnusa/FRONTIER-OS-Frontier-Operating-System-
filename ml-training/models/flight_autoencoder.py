@@ -67,3 +67,4 @@ class FlightTrajectoryAutoencoder(nn.Module):
             # Map MSE via sigmoid centered around threshold
             scores = torch.sigmoid((mse - threshold) * 25.0)
             return torch.clamp(scores, 0.0, 1.0)
+

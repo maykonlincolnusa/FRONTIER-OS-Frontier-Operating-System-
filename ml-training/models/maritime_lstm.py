@@ -65,3 +65,4 @@ class MaritimeTrajectoryGRU(nn.Module):
 
         prob = self.classifier(context)  # (batch_size, 1)
         return prob.squeeze(-1)
+

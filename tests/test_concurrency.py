@@ -60,3 +60,4 @@ async def test_geofence_engine_local_processing():
     # Under offline fallback without DB, handles without throwing exceptions
     assert isinstance(triggered, bool)
     await engine.close()
+

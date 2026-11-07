@@ -72,3 +72,4 @@ class FlightPatternAutoencoder(nn.Module):
             dynamic_axes={"flight_state": {0: "batch_size"}},
         )
         return file_path
+

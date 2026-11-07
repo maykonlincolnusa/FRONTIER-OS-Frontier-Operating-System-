@@ -100,3 +100,4 @@ class FBIWantedClient:
             )
 
         return results
+

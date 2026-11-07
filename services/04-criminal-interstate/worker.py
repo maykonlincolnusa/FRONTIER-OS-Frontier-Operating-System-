@@ -7,7 +7,7 @@ Utilizes multiprocessing with locks to run YOLOv8 ALPR and ArcFace face matching
 import asyncio
 from typing import Any, Dict, List, Optional
 
-from ml-training.models.face_matcher import FaceEmbeddingEngine
+from ml_training.models.face_matcher import FaceEmbeddingEngine
 from shared.concurrency.mp_engine import InferenceProcessPool
 from shared.events.schemas import (
     Agency,
@@ -82,3 +82,4 @@ class InterstateVisionWorker:
             )
 
         return None
+

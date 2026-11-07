@@ -13,7 +13,7 @@ try:
 except ImportError:
     asyncpg = None
 
-from ml-training.models.face_matcher import FaceEmbeddingEngine
+from ml_training.models.face_matcher import FaceEmbeddingEngine
 from shared.config import get_settings
 
 
@@ -104,3 +104,4 @@ class FBIIngestionPipeline:
             await conn.close()
 
         return count
+

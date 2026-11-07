@@ -100,3 +100,4 @@ class OpenSkyClient:
             )
 
         return parsed
+

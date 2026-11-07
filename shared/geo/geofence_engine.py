@@ -213,3 +213,4 @@ class GeofenceEngine:
             await self._pool.close()
             self._pool = None
         await self.lock_manager.close()
+

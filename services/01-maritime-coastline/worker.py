@@ -72,3 +72,4 @@ class MaritimeWorker:
             return alert
 
         return None
+

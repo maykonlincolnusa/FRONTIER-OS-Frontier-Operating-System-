@@ -24,12 +24,12 @@ try:
 except ImportError:
     HAS_XLA = False
 
-from ml-training.datasets.synthetic_generator import (
+from ml_training.datasets.synthetic_generator import (
     generate_flight_dataset,
     generate_maritime_dataset,
 )
-from ml-training.models.flight_autoencoder import FlightTrajectoryAutoencoder
-from ml-training.models.maritime_lstm import MaritimeTrajectoryGRU
+from ml_training.models.flight_autoencoder import FlightTrajectoryAutoencoder
+from ml_training.models.maritime_lstm import MaritimeTrajectoryGRU
 
 
 def get_optimal_device() -> Tuple[torch.device, str]:
@@ -207,3 +207,4 @@ if __name__ == "__main__":
     torch.save(maritime_model.state_dict(), "ml-training/weights/maritime_gru.pt")
     print("Saved: ml-training/weights/maritime_gru.pt")
     print("\nTraining completed successfully.")
+

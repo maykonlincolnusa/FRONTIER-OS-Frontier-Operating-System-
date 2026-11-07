@@ -134,3 +134,4 @@ class FaceEmbeddingEngine:
             ]
         except Exception:
             return []
+

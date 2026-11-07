@@ -81,3 +81,4 @@ class TrajectoryAnomalyLSTM(nn.Module):
             dynamic_axes={"ais_sequence": {0: "batch_size", 1: "seq_len"}},
         )
         return file_path
+

@@ -157,3 +157,4 @@ class InferenceProcessPool:
         """Graceful shutdown of process pool."""
         self.executor.shutdown(wait=wait)
         InferenceProcessPool._instance = None
+

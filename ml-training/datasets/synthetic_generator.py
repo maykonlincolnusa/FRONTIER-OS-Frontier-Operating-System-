@@ -171,3 +171,4 @@ def generate_maritime_dataset(num_samples: int = 500, anomaly_ratio: float = 0.2
         traj = generate_maritime_trajectory(mmsi=mmsi, is_anomaly=is_anomaly, steps=25)
         dataset.append(traj)
     return dataset
+
