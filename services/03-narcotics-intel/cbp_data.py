@@ -129,3 +129,4 @@ def build_border_interstate_graph() -> Dict[str, Any]:
     ]
 
     return {"nodes": nodes, "edges": edges, "num_nodes": len(nodes)}
+

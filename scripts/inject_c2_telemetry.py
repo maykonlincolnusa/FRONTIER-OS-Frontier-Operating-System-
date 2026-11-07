@@ -126,3 +126,4 @@ if __name__ == "__main__":
     import sys
     url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
     asyncio.run(inject_continuous_telemetry(c2_url=url, interval=2.5))
+

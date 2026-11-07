@@ -34,3 +34,4 @@ echo "WebSocket feed streaming on: ws://localhost:8000/ws/c2-stream"
 echo "Press Ctrl+C to terminate."
 
 uv run python scripts/inject_c2_telemetry.py http://localhost:8000
+

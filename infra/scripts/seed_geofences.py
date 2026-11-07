@@ -128,3 +128,4 @@ async def seed_postgis_geofences():
 
 if __name__ == "__main__":
     asyncio.run(seed_postgis_geofences())
+
