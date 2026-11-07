@@ -5,102 +5,108 @@
 
 ---
 
-## 1. Visão Geral do Sistema (System of Systems - SoS)
-**Project Frontier** é uma plataforma unificada C4ISR (*Command, Control, Communications, Computers, Intelligence, Surveillance, and Reconnaissance*) para proteção de fronteiras dos EUA. O sistema integra dados públicos reais de múltiplas agências (USCG, US Navy, USAF, FAA, US Army, NGA, CBP, DEA, FBI e USDOT) com modelos de *Deep Learning* em tempo real.
+## 1. System of Systems (SoS) Overview
+**Project Frontier** is a unified C4ISR (*Command, Control, Communications, Computers, Intelligence, Surveillance, and Reconnaissance*) platform designed for United States territorial integrity and multi-agency border enforcement. The system integrates real public data from multiple federal and military agencies (USCG, US Navy, USAF, FAA, US Army, NGA, CBP, DEA, FBI, and USDOT) with real-time Deep Learning models.
 
-### 1.1. Os 3 Anéis de Segurança (Geofencing Hierárquico)
-O rastreamento de alvos opera em **Defesa em Profundidade**. Quando uma entidade (embarcação, aeronave, veículo ou indivíduo) cruza o polígono geográfico de um anel para outro no **PostGIS**, o sistema emite o evento `JURISDICTION_HANDOFF` no **Kafka**:
+### 1.1. The 3 Defense-in-Depth Security Rings (Hierarchical Geofencing)
+Target tracking operates under a **Defense-in-Depth** doctrine. When an entity (vessel, aircraft, ground vehicle, or individual) crosses from one jurisdictional polygon to another in **PostGIS**, the system automatically emits a `JURISDICTION_HANDOFF` event to **Kafka / Redpanda**:
 
-1. **RING 1 - MARITIME & BLUE BORDER (Anel Externo):**
-   * **Geometria:** Mar Territorial (12 MN), Zona Contígua (24 MN) e ZEE (200 MN).
-   * **Agências:** USCG (Guarda Costeira) & US Navy (Marinha).
-   * **Transição:** Alvos marítimos que atracam fora de portos oficiais disparam `JURISDICTION_HANDOFF` -> `RING_2_FEDERAL`.
-2. **RING 2 - FEDERAL LAND & AIR BORDER (Anel Principal):**
-   * **Geometria:** Fronteiras terrestres (EUA-México / EUA-Canadá), Espaço Aéreo Soberano e Portos de Entrada (POEs).
-   * **Agências:** CBP, US Army, USAF, FAA, NGA.
-   * **Transição:** Ameaças que furam o bloqueio federal e entram na malha rodoviária disparam `JURISDICTION_HANDOFF` -> `RING_3_INTERSTATE`.
-3. **RING 3 - INTERSTATE & INTERNAL CORRIDORS (Anel Interno):**
-   * **Geometria:** Divisas entre os 50 estados americanos e corredores de rodovias interestaduais (*Interstates* I-10, I-35, I-95).
-   * **Agências:** FBI, DEA, USDOT, State Troopers.
-
----
-
-## 2. Stack Tecnológica Obrigatória
-* **Linguagem Backend & IA:** Python 3.11+ (`uv` ou `poetry` para gerenciamento de pacotes).
-* **Framework de APIs:** FastAPI (100% assíncrono), Pydantic v2, SQLAlchemy 2.0 (`asyncpg`) + GeoAlchemy2.
-* **Deep Learning & Visão Computacional:** PyTorch, Ultralytics (YOLOv8), ONNX Runtime, HuggingFace Transformers, PyTorch Geometric (GNNs).
-* **Mensageria (Event Bus):** Apache Kafka (via `aiokafka`) ou Redpanda (compatível com Kafka, mais leve em Docker).
-* **Bancos de Dados:**
-  * **PostgreSQL 16 + PostGIS:** Dados relacionais, telemetria espaço-temporal e Geofencing dos 3 Anéis.
-  * **Qdrant:** Banco vetorial para reconhecimento facial (ArcFace) e busca semântica de relatórios (FBI/DEA).
-  * **Neo4j (Opcional Fase 2):** Grafo de vínculos de cartéis e rotas interestaduais.
-* **Frontend (C2 Dashboard):** Next.js (React + TypeScript), TailwindCSS, Deck.gl + MapLibre GL / Mapbox para renderização tática 2D/3D.
+1. **RING 1 - MARITIME & BLUE BORDER (Outer Ring):**
+   * **Geometry:** Territorial Sea (12 NM), Contiguous Zone (24 NM), and Exclusive Economic Zone (EEZ, 200 NM).
+   * **Agencies:** USCG (Coast Guard) & US Navy.
+   * **Transition:** Maritime targets beaching or mooring outside designated official ports trigger `JURISDICTION_HANDOFF` -> `RING_2_FEDERAL`.
+2. **RING 2 - FEDERAL LAND & AIR BORDER (Main Ring):**
+   * **Geometry:** Land borders (US-Mexico / US-Canada 100-mile statutory zone), Sovereign Airspace, and official Ports of Entry (POEs).
+   * **Agencies:** CBP, US Army, USAF, FAA, NGA.
+   * **Transition:** Ground threats breaching federal checkpoints and entering interstate transit networks trigger `JURISDICTION_HANDOFF` -> `RING_3_INTERSTATE`.
+3. **RING 3 - INTERSTATE & INTERNAL CORRIDORS (Inner Ring):**
+   * **Geometry:** Boundaries across the 50 US states and strategic interstate transit corridors (Interstates I-10, I-35, I-95).
+   * **Agencies:** FBI, DEA, USDOT, State Troopers.
 
 ---
 
-## 3. Estrutura do Monorepo (`frontier-c4isr`)
-Mantenha estritamente esta árvore de diretórios ao gerar arquivos:
+## 2. Mandatory Technology Stack
+* **Backend & AI Language:** Python 3.12+ (`uv` package manager).
+* **API Frameworks:** FastAPI (100% async), Pydantic v2, SQLAlchemy 2.0 (`asyncpg`) + GeoAlchemy2.
+* **Deep Learning & Computer Vision:** PyTorch 2.x, PyTorch XLA (Google Cloud TPU v2/v3/v4/v5e), ONNX Runtime, HuggingFace Transformers.
+* **Event Bus:** Redpanda / Apache Kafka (via `aiokafka`).
+* **Databases:**
+  * **PostgreSQL 16 + PostGIS 3.4:** Relational data, spatio-temporal telemetry, and 3-Ring Geofencing.
+  * **Qdrant:** Vector database for facial recognition (ArcFace) and semantic intelligence reports (FBI/DEA).
+  * **Redis 7:** C2 real-time state caching and pub/sub.
+* **Frontend (C2 Dashboard):** Next.js (React + TypeScript), TailwindCSS, Deck.gl + MapLibre GL for 2D/3D tactical visualization.
+
+---
+
+## 3. Monorepo Directory Architecture (`frontier-c4isr`)
+Strictly adhere to this directory tree:
 
 ```text
 frontier-c4isr/
-├── ARCHITECTURE.md                 # Este documento (SSOT)
+├── ARCHITECTURE.md                 # System of Systems Architecture (SSOT)
+├── README.md                       # Presentation & Quickstart Guide
 ├── docker-compose.yml              # PostGIS, Redpanda (Kafka), Qdrant, Redis
 ├── .env.example
-├── shared/                         # Biblioteca compartilhada entre todos os subsistemas
-│   ├── events/                     # Schemas Pydantic para eventos Kafka (ThreatAlert, JurisdictionHandoff)
-│   ├── geo/                        # Utilitários PostGIS e verificação de Anéis (Ring 1, 2, 3)
-│   └── config/                     # Configurações base (Pydantic Settings)
-├── services/                       # Os 5 Subsistemas (Microsserviços FastAPI + Workers)
-│   ├── 01-maritime-coastline/      # USCG & Navy: Ingestão AIS (MarineCadastre) + LSTM Anomaly Detection
-│   ├── 02-airspace-shield/         # USAF & FAA: Ingestão OpenSky ADS-B + Autoencoder Flight Pattern
-│   ├── 03-narcotics-intel/         # DEA & CBP: Dados CBP/NFLIS/HIDTA + Spatio-Temporal GNN
-│   ├── 04-criminal-interstate/     # FBI & USDOT: API FBI Wanted + 511 Traffic Cams (YOLOv8/ALPR + ArcFace)
-│   ├── 05-geospatial-recon/        # US Army & NGA: Satélite USGS/Sentinel + TIGER/Line Shapefiles
-│   └── c2-gateway/                 # API Gateway + WebSocket Server para transmitir alertas em tempo real ao Frontend
-├── ml-training/                    # Notebooks e scripts de treino (xView, RarePlanes, DOTA, SeaShips)
+├── pyproject.toml
+├── shared/                         # Shared core package across all subsystems
+│   ├── events/                     # Pydantic v2 schemas for Kafka events (ThreatAlert, JurisdictionHandoff)
+│   ├── geo/                        # PostGIS utilities and 3-Ring Geofencing (Ring 1, 2, 3)
+│   └── config/                     # Base configuration (Pydantic Settings)
+├── services/                       # The 5 Core Subsystems (FastAPI microservices + Workers)
+│   ├── 01-maritime-coastline/      # USCG & Navy: AIS ingestion (MarineCadastre) + Bi-GRU Anomaly Detection
+│   ├── 02-airspace-shield/         # USAF & FAA: OpenSky ADS-B ingestion + Flight Trajectory Autoencoder
+│   ├── 03-narcotics-intel/         # DEA & CBP: CBP/NFLIS/HIDTA data + Spatio-Temporal GNN
+│   ├── 04-criminal-interstate/     # FBI & USDOT: FBI Wanted API + Traffic Cams (ALPR + ArcFace in Qdrant)
+│   ├── 05-geospatial-recon/        # US Army & NGA: USGS/Sentinel Satellite + TIGER/Line Shapefiles
+│   └── c2-gateway/                 # API Gateway + WebSocket Server for real-time streaming to Dashboard
+├── ml-training/                    # Datasets, models, TPU Colab training notebook
+│   ├── datasets/                   # OpenSky client, FBI client, synthetic telemetry generators
+│   ├── models/                     # Flight Autoencoder, Maritime Bi-GRU, Qdrant Face Matcher
+│   ├── frontier_c4isr_tpu_training.ipynb  # Interactive Google Colab TPU Notebook
+│   └── train_tpu_colab.py          # Multi-hardware training script (TPU / CUDA / MPS / CPU)
 ├── infra/
-│   ├── postgres/init-postgis.sql   # Criação das tabelas espaciais e polígonos de fronteira
-│   └── scripts/                    # Scripts de download de Shapefiles (US Census TIGER)
-└── dashboard-c2/                   # Aplicação Next.js + Deck.gl (Centro de Comando e Controle)
+│   ├── postgres/init-postgis.sql   # Spatial tables and 3-Ring Geofence initialization
+│   └── scripts/                    # US Census TIGER Shapefile download automation
+└── dashboard-c2/                   # Next.js + Deck.gl Command & Control Dashboard
 ```
 
 ---
 
-## 4. Especificação dos 5 Subsistemas e Fontes Públicas
+## 4. Subsystems Specification & Public Feeds
 
-### Subsistema 01: `01-maritime-coastline` (USCG & US Navy)
-* **Fontes de Dados:** MarineCadastre.gov (AIS de navios) e NOAA NDBC (boias oceânicas).
-* **Tópicos Kafka:** Consome `raw.ais.positions` | Publica `alerts.maritime` e `events.jurisdiction.handoff`.
-* **Modelo DL:** LSTM / Transformer para detecção de anomalias de trajetória (identificar desligamento de AIS "dark ships" e encontros em alto-mar *ship-to-ship*).
+### Subsystem 01: `01-maritime-coastline` (USCG & US Navy)
+* **Data Sources:** MarineCadastre.gov (Vessel AIS) and NOAA NDBC (Oceanic buoys).
+* **Kafka Topics:** Consumes `raw.ais.positions` | Emits `alerts.maritime` and `events.jurisdiction.handoff`.
+* **DL Model:** Bi-GRU / LSTM for trajectory anomaly detection (identifying AIS dark ship shutdowns and ship-to-ship offload meetings).
 
-### Subsistema 02: `02-airspace-shield` (USAF & FAA)
-* **Fontes de Dados:** OpenSky Network REST API (`https://opensky-network.org/api/states/all`) e FAA TFRs.
-* **Tópicos Kafka:** Consome `raw.adsb.states` | Publica `alerts.airspace`.
-* **Modelo DL:** Autoencoder para detecção de perfil de voo clandestino (baixa altitude + velocidade reduzida próximo à fronteira federal).
+### Subsystem 02: `02-airspace-shield` (USAF & FAA)
+* **Data Sources:** OpenSky Network REST API (`https://opensky-network.org/api/states/all`) and FAA TFRs.
+* **Kafka Topics:** Consumes `raw.adsb.states` | Emits `alerts.airspace`.
+* **DL Model:** Deep Autoencoder for clandestine flight profile detection (low altitude + reduced velocity near federal border).
 
-### Subsistema 03: `03-narcotics-intel` (DEA & CBP)
-* **Fontes de Dados:** CBP Drug Seizure Statistics (CSV), DEA NFLIS e zonas HIDTA.
-* **Tópicos Kafka:** Publica `intel.narcotics.hotspots`.
-* **Modelo DL:** Spatio-Temporal Graph Neural Network (ST-GNN) prevendo probabilidade de tráfego ilícito por Porto de Entrada (POE) e corredor rodoviário (I-10, I-35, I-95).
+### Subsystem 03: `03-narcotics-intel` (DEA & CBP)
+* **Data Sources:** CBP Drug Seizure Statistics (CSV), DEA NFLIS, and HIDTA strategic zones.
+* **Kafka Topics:** Emits `intel.narcotics.hotspots`.
+* **DL Model:** Spatio-Temporal Graph Neural Network (ST-GNN) predicting illicit transit probability per Port of Entry (POE) and interstate highway corridor (I-10, I-35, I-95).
 
-### Subsistema 04: `04-criminal-interstate` (FBI & USDOT)
-* **Fontes de Dados:**
-  * FBI Wanted API (`https://api.fbi.gov/wanted/v1/list`) — Ingestão de fugitivos, fotos e metadados.
-  * FBI Crime Data Explorer API & Câmeras públicas rodoviárias (State 511 / USDOT).
-* **Tópicos Kafka:** Publica `alerts.criminal.sighting` e consome `events.jurisdiction.handoff`.
-* **Modelo DL:**
-  * **Visão:** YOLOv8 + OCR (ALPR para veículos/placas em divisas estaduais) + embeddings faciais no **Qdrant** comparando com fotos da API do FBI Wanted.
-  * **NLP:** Extração de entidades (NER) das descrições dos procurados do FBI.
+### Subsystem 04: `04-criminal-interstate` (FBI & USDOT)
+* **Data Sources:**
+  * FBI Wanted API (`https://api.fbi.gov/wanted/v1/list`) — Fugitives, biometric photos, and metadata.
+  * State 511 highway traffic cameras & USDOT transport monitors.
+* **Kafka Topics:** Emits `alerts.criminal.sighting` | Consumes `events.jurisdiction.handoff`.
+* **DL Models:**
+  * **Vision:** ArcFace 512-dim face embeddings indexed in **Qdrant** + YOLOv8 ALPR on highway corridors.
+  * **NLP:** Named Entity Recognition (NER) on fugitive descriptions.
 
-### Subsistema 05: `05-geospatial-recon` (US Army & NGA)
-* **Fontes de Dados:** US Census TIGER/Line Shapefiles (fronteiras federais, 50 estados e Interstates) e imagens USGS/Sentinel-2.
-* **Responsabilidade Core:** Carregar os polígonos oficiais no PostGIS e rodar detecção de objetos (YOLOv8 treinado em xView/DOTA/RarePlanes) em imagens de satélite das zonas de fronteira terrestre.
+### Subsystem 05: `05-geospatial-recon` (US Army & NGA)
+* **Data Sources:** US Census TIGER/Line Shapefiles (federal boundaries, 50 states, and primary interstates) and USGS / Sentinel-2 imagery.
+* **Core Responsibilities:** Seed official boundaries in PostGIS and run object detection (YOLOv8 trained on xView/DOTA/RarePlanes) over satellite imagery of borderlands.
 
 ---
 
-## 5. Contrato Padrão de Eventos (Pydantic / Kafka JSON Schema)
+## 5. Event Bus Standard Contracts (Pydantic / Kafka JSON)
 
-Todos os subsistemas devem emitir eventos seguindo este contrato em `shared/events/schemas.py`:
+All microservices emit events following these standard contracts in `shared/events/schemas.py`:
 
 ```python
 from datetime import datetime
@@ -123,6 +129,7 @@ class Agency(str, Enum):
     DEA = "DEA"
     FBI = "FBI"
     USDOT = "USDOT"
+    STATE_TROOPERS = "STATE_TROOPERS"
 
 class ThreatAlertEvent(BaseModel):
     event_id: UUID = Field(default_factory=uuid4)
@@ -130,7 +137,7 @@ class ThreatAlertEvent(BaseModel):
     subsystem: str
     ring: SecurityRing
     lead_agency: Agency
-    severity: float = Field(..., ge=0.0, le=1.0, description="Score de risco calculado pelo modelo de Deep Learning")
+    severity: float = Field(..., ge=0.0, le=1.0, description="Risk score computed by Deep Learning model")
     latitude: float
     longitude: float
     target_id: str
@@ -152,8 +159,8 @@ class JurisdictionHandoffEvent(BaseModel):
 
 ---
 
-## 6. Plano de Execução Faseado (Roadmap para o Agente)
-* **Fase 1 (Infra & Core):** Criar a estrutura de pastas, o pacote `shared/`, o `docker-compose.yml` (PostGIS, Redpanda/Kafka, Qdrant) e o script de inicialização do PostGIS com as tabelas de Geofencing dos 3 Anéis.
-* **Fase 2 (Primeiro Pipeline Real - FBI + Airspace):** Implementar o `04-criminal-interstate` consumindo a API real do **FBI Wanted** (salvando no Postgres + Qdrant) e o `02-airspace-shield` consumindo a API real do **OpenSky Network** na fronteira sul (EUA-México).
-* **Fase 3 (Geofencing & Handoff):** Implementar o motor espacial no PostGIS que detecta cruzamento de fronteira e emite `JurisdictionHandoffEvent`.
-* **Fase 4 (Deep Learning & C2 Dashboard):** Integrar modelos PyTorch/YOLOv8 e subir o painel tático em Next.js + Deck.gl.
+## 6. Phased Execution Roadmap
+* **Phase 1 (Infra & Core):** Directory scaffolding, `shared/` package, `docker-compose.yml` (PostGIS, Redpanda/Kafka, Qdrant, Redis), and PostGIS 3-Ring initialization script with spatial indexes.
+* **Phase 2 (Datasets & Deep Learning):** Real public API clients (FBI Wanted + OpenSky Network), Flight Autoencoder, Maritime Bi-GRU, Qdrant facial vector search, and Google Colab TPU distributed training.
+* **Phase 3 (Geofencing & Handoff Engine):** Real-time spatial engine detecting border crossings and emitting `JurisdictionHandoffEvent`.
+* **Phase 4 (Deep Learning Perception & C2 Dashboard):** Full YOLOv8 integration and Next.js + Deck.gl tactical dashboard.

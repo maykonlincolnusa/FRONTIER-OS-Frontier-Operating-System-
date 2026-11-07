@@ -20,6 +20,10 @@ dependencies = [
     "shapely>=2.0.3",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "torch>=2.15.0",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "scikit-learn>=1.9.1",
 ]
 
 [build-system]
