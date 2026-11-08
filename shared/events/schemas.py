@@ -20,7 +20,7 @@ class SecurityRing(str, Enum):
 
 
 class TheaterOfOperations(str, Enum):
-    """Federated Pan-American Theaters of Operations."""
+    """Federated Global & Pan-American Theaters of Operations (Americas + EMEA)."""
     USA = "USA"
     BRAZIL = "BRAZIL"
     COLOMBIA = "COLOMBIA"
@@ -28,16 +28,24 @@ class TheaterOfOperations(str, Enum):
     PANAMA = "PANAMA"
     CHILE = "CHILE"
     ARGENTINA = "ARGENTINA"
+    UNITED_KINGDOM = "UNITED_KINGDOM"
+    EUROPE_EU = "EUROPE_EU"
+    WEST_AFRICA = "WEST_AFRICA"
+    MIDDLE_EAST = "MIDDLE_EAST"
 
 
 class TransnationalSyndicate(str, Enum):
     """Major Transnational Criminal Organizations (TCOs) and Drug Cartels."""
-    PCC = "PCC"  # Primeiro Comando da Capital (Santos, Hidrovia Paraná-Paraguai)
+    PCC = "PCC"  # Primeiro Comando da Capital (Santos, Hidrovia Paraná-Paraguai, Transatlântico)
     CV = "CV"    # Comando Vermelho (Rota Solimões / Amazônia)
     SINALOA_CARTEL = "SINALOA_CARTEL"
     CJNG = "CJNG"  # Cártel Jalisco Nueva Generación
     CLAN_DEL_GOLFO = "CLAN_DEL_GOLFO"
     TREN_DE_ARAGUA = "TREN_DE_ARAGUA"
+    NDRANGHETA = "NDRANGHETA"      # Calabria / Gioia Tauro / Antwerp (EU Buyer of PCC Cocaine)
+    MOCRO_MAFFIA = "MOCRO_MAFFIA"  # Rotterdam / Antwerp / Dubai Super-Cartel
+    KINAHAN_CARTEL = "KINAHAN_CARTEL"  # UK / Ireland / Dubai Money Laundering & Narco Broker
+    BALKAN_CARTEL = "BALKAN_CARTEL"    # Transatlantic Maritime Container & Sailing Syndicate
     UNKNOWN = "UNKNOWN"
 
 
@@ -52,7 +60,7 @@ class TransportModal(str, Enum):
 
 
 class Agency(str, Enum):
-    """Participating Pan-American C4ISR Defense & Law Enforcement Agencies."""
+    """Participating Global C4ISR Defense & Law Enforcement Agencies (Americas, UK, EU, MEA)."""
     # United States Agencies
     USCG = "USCG"
     US_NAVY = "US_NAVY"
@@ -63,9 +71,11 @@ class Agency(str, Enum):
     FBI = "FBI"
     USDOT = "USDOT"
     STATE_TROOPERS = "STATE_TROOPERS"
-    # Latin American Partner Agencies
+    # Brazilian & Latin American Agencies
     PF_BR = "PF_BR"                      # Polícia Federal (Brasil)
     PRF_BR = "PRF_BR"                    # Polícia Rodoviária Federal (Brasil)
+    RFB_BR = "RFB_BR"                    # Receita Federal do Brasil (Aduana / Siscomex)
+    SISFRON_BR = "SISFRON_BR"            # Exército Brasileiro - Sistema Integrado de Monitoramento de Fronteiras
     ANTAQ_BR = "ANTAQ_BR"                # Agência Nac. de Transportes Aquaviários (Brasil)
     MARINHA_BR = "MARINHA_BR"            # Marinha do Brasil
     FAB_BR = "FAB_BR"                    # Força Aérea Brasileira
@@ -73,6 +83,15 @@ class Agency(str, Enum):
     ACP_PA = "ACP_PA"                    # Autoridad del Canal de Panamá
     DIRECTEMAR_CL = "DIRECTEMAR_CL"      # Dir. Gen. del Territorio Marítimo (Chile)
     PREFECTURA_AR = "PREFECTURA_AR"      # Prefectura Naval Argentina
+    # European Union, United Kingdom, Middle East & Africa Agencies
+    EUROPOL = "EUROPOL"                  # European Union Agency for Law Enforcement Cooperation
+    FRONTEX = "FRONTEX"                  # European Border and Coast Guard Agency
+    MAOC_N = "MAOC_N"                    # Maritime Analysis and Operations Centre - Narcotics (Lisbon)
+    UK_NCA = "UK_NCA"                    # United Kingdom National Crime Agency
+    UK_BF = "UK_BF"                      # United Kingdom Border Force & HM Revenue & Customs
+    UK_OFSI = "UK_OFSI"                  # UK Office of Financial Sanctions Implementation (HM Treasury)
+    UNODC_WA = "UNODC_WA"                # UNODC / Gulf of Guinea Maritime Interdiction (West Africa)
+    UAE_FIU = "UAE_FIU"                  # UAE Financial Intelligence Unit / Dubai Customs
     INTERPOL = "INTERPOL"                # International Criminal Police Organization
 
 

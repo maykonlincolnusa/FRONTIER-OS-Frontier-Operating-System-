@@ -52,6 +52,7 @@ redis_data/
 *.pt
 *.pth
 *.onnx
+!frontier_c4isr_deployment/weights/*.onnx
 *.weights
 *.h5
 *.tflite

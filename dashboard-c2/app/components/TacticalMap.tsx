@@ -26,6 +26,10 @@ export type CameraPreset =
   | "panamerican"
   | "usa"
   | "brazil"
+  | "brazil_borders"
+  | "uk_europe"
+  | "west_africa"
+  | "middle_east"
   | "colombia"
   | "mexico"
   | "panama"
@@ -100,28 +104,70 @@ const TRANSNATIONAL_ARCS = [
   },
   {
     id: "arc-cone-sur-hidrovia",
-    name: "Hidrovía Paraná-Paraguay Bulk Route",
+    name: "Hidrovía Paraná-Paraguay & SISFRON Southern Arc",
     syndicate: "PCC",
     modal: "RIVERINE_BARGE",
     color: "#a855f7", // Purple
     coords: [
       [-32.946, -60.639], // Rosario (Argentina)
       [-25.513, -54.587], // Foz do Iguaçu (BR-277)
+      [-22.536, -55.725], // Ponta Porã / Pedro Juan Caballero (BR-163)
+      [-19.008, -57.651], // Corumbá (Pantanal / Bolivia Border)
       [-25.501, -48.508], // Port of Paranaguá
       [-23.967, -46.301], // Santos Export Terminal
     ] as L.LatLngExpression[],
-    flow: "Hidrovía Paraná-Paraguay ➔ Tri-Border BR-277 ➔ Santos Deepwater Port",
+    flow: "SISFRON Arco Sul/Central (Corumbá / Ponta Porã / Foz) ➔ BR-163/277 ➔ Santos/Paranaguá",
+  },
+  {
+    id: "arc-transatlantic-europol-uk",
+    name: "Transatlantic 'Highway 10' ➔ West Africa ➔ Europol (Antwerp) & UK (Felixstowe/London)",
+    syndicate: "NDRANGHETA",
+    modal: "MARITIME_CONTAINER",
+    color: "#ec4899", // Pink/Magenta
+    coords: [
+      [-25.501, -48.508], // Paranaguá (Brazil)
+      [-23.967, -46.301], // Port of Santos (Brazil)
+      [-5.794, -35.211],  // Natal (Northeast Brazil Chokepoint)
+      [11.863, -15.597],  // Bissau / Dakar (West Africa 'Highway 10')
+      [36.140, -5.453],   // Algeciras / Gibraltar Strait
+      [51.260, 4.358],    // Port of Antwerp-Bruges (Europol Hub)
+      [51.954, 1.310],    // Port of Felixstowe / City of London (UK NCA / OFSI)
+    ] as L.LatLngExpression[],
+    flow: "Santos/Paranaguá (PCC) ➔ West Africa Highway 10 ➔ Antwerp (Europol) ➔ Felixstowe/London (UK NCA)",
+  },
+  {
+    id: "arc-amazon-gold-dubai-mea",
+    name: "Brazil Northern Border (SISFRON) ➔ West Africa ➔ Dubai DMCC & Fujairah STS (Middle East)",
+    syndicate: "PCC",
+    modal: "CLANDESTINE_AIRCRAFT",
+    color: "#f43f5e", // Rose/Crimson
+    coords: [
+      [-4.231, -69.938],  // Tabatinga (Tri-Border AM)
+      [0.130, -67.089],   // Cabeça do Cachorro (AM)
+      [4.479, -61.147],   // Pacaraima / Yanomami (RR Border)
+      [5.852, -55.203],   // Paramaribo (Suriname) / Oiapoque (French Guiana EU)
+      [6.454, 3.394],     // Gulf of Guinea / Lagos (Africa)
+      [25.204, 55.270],   // Dubai DMCC Gold Souk & Fujairah STS (Middle East)
+      [51.514, -0.088],   // City of London OTC Bullion Clearing (UK)
+    ] as L.LatLngExpression[],
+    flow: "Arco Norte Brasil (Tabatinga/Pacaraima) ➔ Suriname ➔ Golfo da Guiné ➔ Dubai/Fujairah ➔ Londres",
   },
 ];
 
-// Strategic ST-GNN Risk Hotspot Nodes
+// Strategic ST-GNN Risk Hotspot Nodes (Americas, Brazil Borders, UK, Europol & MEA)
 const STRATEGIC_HOTSPOTS = [
-  { name: "Porto de Santos (PCC)", lat: -23.967, lon: -46.301, risk: 0.88, color: "#38bdf8" },
+  { name: "Porto de Santos (PCC / RFB)", lat: -23.967, lon: -46.301, risk: 0.94, color: "#38bdf8" },
+  { name: "Foz do Iguaçu / Ponte da Amizade (SISFRON Arco Sul)", lat: -25.516, lon: -54.585, risk: 0.99, color: "#a855f7" },
+  { name: "Ponta Porã / Pedro Juan Caballero (Fronteira Seca MS)", lat: -22.536, lon: -55.725, risk: 0.98, color: "#c084fc" },
+  { name: "Pacaraima / Yanomami (SISFRON Arco Norte RR)", lat: 4.479, lon: -61.147, risk: 0.95, color: "#f59e0b" },
+  { name: "Tabatinga / Rio Solimões (Tríplice Fronteira AM)", lat: -4.241, lon: -69.938, risk: 0.96, color: "#eab308" },
   { name: "Tumaco Submersible Hub (Clan del Golfo)", lat: 1.798, lon: -78.815, risk: 0.96, color: "#10b981" },
   { name: "Panama Canal Transit (Balboa / Colón)", lat: 8.956, lon: -79.567, risk: 0.92, color: "#06b6d4" },
-  { name: "Manzanillo Pacific Entry (CJNG)", lat: 19.053, lon: -104.316, risk: 0.95, color: "#f43f5e" },
   { name: "Laredo World Trade Bridge (Sinaloa)", lat: 27.599, lon: -99.531, risk: 0.97, color: "#ef4444" },
-  { name: "Tabatinga Riverine Basin (CV)", lat: -4.241, lon: -69.938, risk: 0.91, color: "#eab308" },
+  { name: "Port of Antwerp & Rotterdam (Europol Taskforce)", lat: 51.260, lon: 4.358, risk: 0.98, color: "#ec4899" },
+  { name: "City of London & Port of Felixstowe (UK NCA / OFSI)", lat: 51.514, lon: -0.088, risk: 0.96, color: "#60a5fa" },
+  { name: "Bissau & Gulf of Guinea ('Highway 10' West Africa)", lat: 11.863, lon: -15.597, risk: 0.95, color: "#f97316" },
+  { name: "Dubai DMCC & Fujairah STS (Middle East Clearing)", lat: 25.204, lon: 55.270, risk: 0.97, color: "#f43f5e" },
 ];
 
 export default function TacticalMap({
@@ -204,10 +250,15 @@ export default function TacticalMap({
       setCurrentZoom(map.getZoom());
     });
 
-    map.fitBounds([
-      [-55.0, -125.0],
-      [50.0, -34.0],
-    ]);
+    if (selectedTarget) {
+      map.setView([selectedTarget.latitude, selectedTarget.longitude], 7.0);
+      setCurrentZoom(7.0);
+    } else {
+      map.fitBounds([
+        [-55.0, -125.0],
+        [50.0, -34.0],
+      ]);
+    }
 
     // 1. South America GeoJSON Intelligence Layer
     fetch("/south_america.json")
@@ -442,15 +493,19 @@ export default function TacticalMap({
     }
   }, [showDefenseRings]);
 
+  const prevPresetRef = useRef<CameraPreset | undefined>(cameraPreset);
+
   // Camera Presets (8 Theaters of Operations)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
+    if (prevPresetRef.current === cameraPreset) return;
+    prevPresetRef.current = cameraPreset;
     const map = mapInstanceRef.current;
 
     switch (cameraPreset) {
       case "panamerican":
       case "americas":
-        map.flyToBounds([[-55.0, -125.0], [50.0, -34.0]], { duration: 1.0 });
+        map.flyToBounds([[-42.0, -118.0], [54.0, 58.0]], { duration: 1.0 });
         break;
       case "usa":
       case "us":
@@ -459,6 +514,18 @@ export default function TacticalMap({
       case "brazil":
       case "south_america":
         map.flyTo([-14.23, -51.92], 4.5, { duration: 1.0 });
+        break;
+      case "brazil_borders":
+        map.flyTo([-13.5, -58.5], 4.8, { duration: 1.0 });
+        break;
+      case "uk_europe":
+        map.flyTo([51.35, 2.2], 6.0, { duration: 1.0 });
+        break;
+      case "west_africa":
+        map.flyTo([10.5, -12.0], 5.2, { duration: 1.0 });
+        break;
+      case "middle_east":
+        map.flyTo([25.2, 55.3], 6.0, { duration: 1.0 });
         break;
       case "colombia":
         map.flyTo([4.57, -74.29], 6.0, { duration: 1.0 });
@@ -554,13 +621,10 @@ export default function TacticalMap({
           )
           .addTo(heatmapGroup);
       });
-
-      // In Strategic Mode, DO NOT draw cluttered individual pins!
-      return;
     }
 
     // -----------------------------------------------------------------------
-    // LEVEL 2 & 3: OPERATIONAL (4 <= zoom < 7) & TACTICAL (zoom >= 7)
+    // ALL ZOOM LEVELS: Render Filtered Threat Target Pins (Strategic + Operational + Tactical)
     // -----------------------------------------------------------------------
     const filteredThreats = threats.filter((t) => {
       if (ringFilter !== "ALL" && t.ring !== ringFilter) return false;

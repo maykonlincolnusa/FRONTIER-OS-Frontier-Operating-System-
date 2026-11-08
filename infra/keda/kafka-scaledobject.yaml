@@ -193,3 +193,4 @@ spec:
         topic: events.jurisdiction.handoff
         lagThreshold: "10"
         offsetResetPolicy: latest
+

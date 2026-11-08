@@ -1,0 +1,386 @@
+
+pytorch2.14.1+cu130:ºò
+Ù
+images
+backbone.0.weight
+backbone.0.biasgetitemnode_Conv_29"Conv*
+group†*
+pads@@@@†*
+auto_pad"NOTSET†*
+strides@@†*
+	dilations@@†*
+kernel_shape@@†JÌ
+	namespaceﬂ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.1: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training: aten._native_batch_norm_legit_no_training.defaultJ:
+!pkg.onnxscript.rewriter.rule_nameFuseBatchNormIntoConvJ—
+pkg.torch.onnx.class_hierarchyÆ['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J∞
+pkg.torch.onnx.fx_nodeï%_native_batch_norm_legit_no_training : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d, %p_backbone_1_weight, %p_backbone_1_bias, %b_backbone_1_running_mean, %b_backbone_1_running_var, 0.1, 1e-05), kwargs = {})Jd
+pkg.torch.onnx.name_scopesF['', 'backbone', 'backbone.1', '_native_batch_norm_legit_no_training']Jö
+pkg.torch.onnx.stack_trace˚File "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/batchnorm.py", line 210, in forward
+    return F.batch_norm(
+Ç	
+getitemval_9node_Sigmoid_9"SigmoidJß
+	namespaceô: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.2: torch.nn.modules.activation.SiLU/silu: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']JÑ
+pkg.torch.onnx.fx_nodej%silu : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'backbone', 'backbone.2', 'silu']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+ˇ
+getitem
+val_9silu	node_silu"MulJß
+	namespaceô: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.2: torch.nn.modules.activation.SiLU/silu: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']JÑ
+pkg.torch.onnx.fx_nodej%silu : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem,), kwargs = {})JD
+pkg.torch.onnx.name_scopes&['', 'backbone', 'backbone.2', 'silu']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+¸
+silu
+backbone.3.weight
+backbone.3.bias	getitem_3node_Conv_30"Conv*
+group†*
+pads@@@@†*
+auto_pad"NOTSET†*
+strides@@†*
+	dilations@@†*
+kernel_shape@@†JÔ
+	namespace·: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.4: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_1: aten._native_batch_norm_legit_no_training.defaultJ:
+!pkg.onnxscript.rewriter.rule_nameFuseBatchNormIntoConvJ—
+pkg.torch.onnx.class_hierarchyÆ['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J¥
+pkg.torch.onnx.fx_nodeô%_native_batch_norm_legit_no_training_1 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_1, %p_backbone_4_weight, %p_backbone_4_bias, %b_backbone_4_running_mean, %b_backbone_4_running_var, 0.1, 1e-05), kwargs = {})Jf
+pkg.torch.onnx.name_scopesH['', 'backbone', 'backbone.4', '_native_batch_norm_legit_no_training_1']Jö
+pkg.torch.onnx.stack_trace˚File "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/batchnorm.py", line 210, in forward
+    return F.batch_norm(
+é	
+	getitem_3val_16node_Sigmoid_16"SigmoidJ©
+	namespaceõ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.5: torch.nn.modules.activation.SiLU/silu_1: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']Jà
+pkg.torch.onnx.fx_noden%silu_1 : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem_3,), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'backbone', 'backbone.5', 'silu_1']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+é	
+	getitem_3
+val_16silu_1node_silu_1"MulJ©
+	namespaceõ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.5: torch.nn.modules.activation.SiLU/silu_1: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']Jà
+pkg.torch.onnx.fx_noden%silu_1 : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem_3,), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'backbone', 'backbone.5', 'silu_1']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+˛
+silu_1
+backbone.6.weight
+backbone.6.bias	getitem_6node_Conv_31"Conv*
+group†*
+pads@@@@†*
+auto_pad"NOTSET†*
+strides@@†*
+	dilations@@†*
+kernel_shape@@†JÔ
+	namespace·: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.7: torch.nn.modules.batchnorm.BatchNorm2d/_native_batch_norm_legit_no_training_2: aten._native_batch_norm_legit_no_training.defaultJ:
+!pkg.onnxscript.rewriter.rule_nameFuseBatchNormIntoConvJ—
+pkg.torch.onnx.class_hierarchyÆ['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.batchnorm.BatchNorm2d', 'aten._native_batch_norm_legit_no_training.default']J¥
+pkg.torch.onnx.fx_nodeô%_native_batch_norm_legit_no_training_2 : [num_users=1] = call_function[target=torch.ops.aten._native_batch_norm_legit_no_training.default](args = (%conv2d_2, %p_backbone_7_weight, %p_backbone_7_bias, %b_backbone_7_running_mean, %b_backbone_7_running_var, 0.1, 1e-05), kwargs = {})Jf
+pkg.torch.onnx.name_scopesH['', 'backbone', 'backbone.7', '_native_batch_norm_legit_no_training_2']Jö
+pkg.torch.onnx.stack_trace˚File "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/batchnorm.py", line 210, in forward
+    return F.batch_norm(
+é	
+	getitem_6val_23node_Sigmoid_23"SigmoidJ©
+	namespaceõ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.8: torch.nn.modules.activation.SiLU/silu_2: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']Jà
+pkg.torch.onnx.fx_noden%silu_2 : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem_6,), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'backbone', 'backbone.8', 'silu_2']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+é	
+	getitem_6
+val_23silu_2node_silu_2"MulJ©
+	namespaceõ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.8: torch.nn.modules.activation.SiLU/silu_2: aten.silu.defaultJ´
+pkg.torch.onnx.class_hierarchyà['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.activation.SiLU', 'aten.silu.default']Jà
+pkg.torch.onnx.fx_noden%silu_2 : [num_users=1] = call_function[target=torch.ops.aten.silu.default](args = (%getitem_6,), kwargs = {})JF
+pkg.torch.onnx.name_scopes(['', 'backbone', 'backbone.8', 'silu_2']J±
+pkg.torch.onnx.stack_traceíFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/activation.py", line 476, in forward
+    return F.silu(input, inplace=self.inplace)
+⁄
+
+silu_2
+avg_pool2dnode_avg_pool2d"AveragePool*
+count_include_pad†*
+	ceil_mode †*
+pads@ @ @ @ †*
+auto_pad"NOTSET†*
+strides@@†*
+kernel_shape@@†JΩ
+	namespaceØ: __main__.MilitarySatelliteDetector/backbone: torch.nn.modules.container.Sequential/backbone.9: torch.nn.modules.pooling.AdaptiveAvgPool2d/avg_pool2d: aten.avg_pool2d.defaultJª
+pkg.torch.onnx.class_hierarchyò['__main__.MilitarySatelliteDetector', 'torch.nn.modules.container.Sequential', 'torch.nn.modules.pooling.AdaptiveAvgPool2d', 'aten.avg_pool2d.default']Jü
+pkg.torch.onnx.fx_nodeÑ%avg_pool2d : [num_users=1] = call_function[target=torch.ops.aten.avg_pool2d.default](args = (%silu_2, [4, 4], [4, 4]), kwargs = {})JJ
+pkg.torch.onnx.name_scopes,['', 'backbone', 'backbone.9', 'avg_pool2d']J∫
+pkg.torch.onnx.stack_traceõFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 79, in forward
+    feat = self.backbone(x)     # (B, 128, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py", line 259, in forward
+    input = module(input)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/pooling.py", line 1514, in forward
+    return F.adaptive_avg_pool2d(input, self.output_size)
+Œ
+
+avg_pool2d
+head.weight
+	head.biasconv2d_3node_conv2d_3"Conv*
+group†*
+pads@ @ @ @ †*
+auto_pad"NOTSET†*
+strides@@†*
+	dilations@@†*
+kernel_shape@@†Jr
+	namespacee: __main__.MilitarySatelliteDetector/head: torch.nn.modules.conv.Conv2d/conv2d_3: aten.conv2d.defaultJ
+pkg.torch.onnx.class_hierarchy]['__main__.MilitarySatelliteDetector', 'torch.nn.modules.conv.Conv2d', 'aten.conv2d.default']J´
+pkg.torch.onnx.fx_nodeê%conv2d_3 : [num_users=1] = call_function[target=torch.ops.aten.conv2d.default](args = (%avg_pool2d, %p_head_weight, %p_head_bias), kwargs = {})J6
+pkg.torch.onnx.name_scopes['', 'head', 'conv2d_3']J∏
+pkg.torch.onnx.stack_traceôFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 80, in forward
+    preds = self.head(feat)     # (B, 8, 8, 8)
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/conv.py", line 565, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+ì
+conv2d_3
+val_29predictionsnode_Reshape_34"Reshape*
+	allowzero†JI
+	namespace<: __main__.MilitarySatelliteDetector/view: aten.view.defaultJ<
+!pkg.onnxscript.rewriter.rule_nameMaterializeReshapeShapeJ]
+pkg.torch.onnx.class_hierarchy;['__main__.MilitarySatelliteDetector', 'aten.view.default']Jü
+pkg.torch.onnx.fx_nodeÑ%view : [num_users=1] = call_function[target=torch.ops.aten.view.default](args = (%conv2d_3, [%sym_size_int_1, 8, 64]), kwargs = {})J*
+pkg.torch.onnx.name_scopes['', 'view']Jè
+pkg.torch.onnx.stack_traceFile "/content/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/FRONTIER-OS-Frontier-Operating-System-/ml_training/satellite_vision/train_yolo_military.py", line 83, in forward
+    return preds.view(B, C, H * W)
+main_graph*g Bbackbone.0.weightj)
+locationfrontier_sat_yolov8.onnx.dataj
+offset0j
+length3456p*ò Bbackbone.0.biasJÄˆ
+>ı¬’<CÍD>v:>oXæÖcµ<’:ÌΩ3Ï¶=∑πÊ:@@SΩ}∞‘=äë ΩÖﬁ2æ0ø=,≈M∫6:>ô¶;)ï˜=LP<åæÎCU=Á¥C>z˙†=ó˘?æ;=Íw<L◊iΩ4æÎ9>‘ﬁ©=©›æ˘ûΩ*ò@Bbackbone.3.biasJÄ:\=ÙÒ<
+”œº“üg=Eâ<Ω_t!=L˘dΩ◊˛(=ÆøÓºãê‘:4Äº;†^Ωı√L=sS;ç	B=ÕÕcΩ∞P+Ω-ò!=™B=»/YΩe2ãºΩu_=GXUΩ—Ó6ΩıΩäÛ<=ÃÊe<UÓßº
+ÔÓ<Ûsˆº=+±<ºtAΩXQ=öéD=†s<+b	Ω◊∏¢º√¯[:“ö!=R!=[º.='AœºyåªX^=§©p<Æ}nºà1=‰ÿ[Ωö3º$≠˘º⁄ÙYΩ÷ùYª≤û∫tû1º⁄™<É{ëº[R=—kB<ÜÚ<%è=}‹=oSΩ†>XΩ*bÄBbackbone.6.biasj)
+locationfrontier_sat_yolov8.onnx.dataj
+offset3456j
+length512p*1B	head.biasJ còo=/î=±¥¢ΩBÿMΩ∫Yr;·Ìò=uE™=Wç<*k@ Bbackbone.3.weightj)
+locationfrontier_sat_yolov8.onnx.dataj
+offset3968j
+length73728p*nÄ@Bbackbone.6.weightj)
+locationfrontier_sat_yolov8.onnx.dataj
+offset77696j
+length294912p*gÄBhead.weightj)
+locationfrontier_sat_yolov8.onnx.dataj
+offset372608j
+length4096p*&Bval_29Jˇˇˇˇˇˇˇˇ       @       Z“
+images"
+ 
+
+batch_size
+
+Ä
+Ä"=
+/pkg.torch.export.graph_signature.InputSpec.kind
+USER_INPUT"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"&
+!pkg.torch.onnx.original_node_namexbV
+predictions
+
+
+batch_size
+
+@")
+!pkg.torch.onnx.original_node_nameviewj+
+backbone.0.weight
+
+ 
+
+
+j
+backbone.0.bias
+
+
+ j
+backbone.3.bias
+
+
+@j
+backbone.6.bias
+	
+Äj∆
+	head.bias
+
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"0
+!pkg.torch.onnx.original_node_namep_head_biasj+
+backbone.3.weight
+
+@
+ 
+
+j,
+backbone.6.weight
+
+Ä
+@
+
+j◊
+head.weight
+
+
+Ä
+
+"<
+/pkg.torch.export.graph_signature.InputSpec.kind	PARAMETER"=
+5pkg.torch.export.graph_signature.InputSpec.persistentNone"2
+!pkg.torch.onnx.original_node_namep_head_weightj
+val_29
+
+
+j-
+getitem"
+ 
+
+batch_size
+ 
+Ä
+Äj+
+val_9"
+ 
+
+batch_size
+ 
+Ä
+Äj*
+silu"
+ 
+
+batch_size
+ 
+Ä
+Äj-
+	getitem_3 
+
+
+batch_size
+@
+@
+@j*
+val_16 
+
+
+batch_size
+@
+@
+@j*
+silu_1 
+
+
+batch_size
+@
+@
+@j.
+	getitem_6!
+
+
+batch_size
+Ä
+ 
+ j+
+val_23!
+
+
+batch_size
+Ä
+ 
+ j+
+silu_2!
+
+
+batch_size
+Ä
+ 
+ j/
+
+avg_pool2d!
+
+
+batch_size
+Ä
+
+j,
+conv2d_3 
+
+
+batch_size
+
+
+ÇÒ
+0pkg.torch.export.ExportedProgram.graph_signatureº
+# inputs
+p_backbone_0_weight: PARAMETER target='backbone.0.weight'
+p_backbone_0_bias: PARAMETER target='backbone.0.bias'
+p_backbone_1_weight: PARAMETER target='backbone.1.weight'
+p_backbone_1_bias: PARAMETER target='backbone.1.bias'
+p_backbone_3_weight: PARAMETER target='backbone.3.weight'
+p_backbone_3_bias: PARAMETER target='backbone.3.bias'
+p_backbone_4_weight: PARAMETER target='backbone.4.weight'
+p_backbone_4_bias: PARAMETER target='backbone.4.bias'
+p_backbone_6_weight: PARAMETER target='backbone.6.weight'
+p_backbone_6_bias: PARAMETER target='backbone.6.bias'
+p_backbone_7_weight: PARAMETER target='backbone.7.weight'
+p_backbone_7_bias: PARAMETER target='backbone.7.bias'
+p_head_weight: PARAMETER target='head.weight'
+p_head_bias: PARAMETER target='head.bias'
+b_backbone_1_running_mean: BUFFER target='backbone.1.running_mean' persistent=True
+b_backbone_1_running_var: BUFFER target='backbone.1.running_var' persistent=True
+b_backbone_1_num_batches_tracked: BUFFER target='backbone.1.num_batches_tracked' persistent=True
+b_backbone_4_running_mean: BUFFER target='backbone.4.running_mean' persistent=True
+b_backbone_4_running_var: BUFFER target='backbone.4.running_var' persistent=True
+b_backbone_4_num_batches_tracked: BUFFER target='backbone.4.num_batches_tracked' persistent=True
+b_backbone_7_running_mean: BUFFER target='backbone.7.running_mean' persistent=True
+b_backbone_7_running_var: BUFFER target='backbone.7.running_var' persistent=True
+b_backbone_7_num_batches_tracked: BUFFER target='backbone.7.num_batches_tracked' persistent=True
+x: USER_INPUT
+
+# outputs
+view: USER_OUTPUT
+ÇJ
+2pkg.torch.export.ExportedProgram.range_constraints{s77: VR[0, int_oo]}B
+ 

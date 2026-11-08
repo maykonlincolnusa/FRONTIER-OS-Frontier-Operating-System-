@@ -151,3 +151,4 @@ def test_phase5_keda_autoscaling_manifest():
     assert "c4isr-fusion-scaler" in content
     assert "raw.ais.positions" in content
     assert "intel.narcotics.hotspots" in content
+

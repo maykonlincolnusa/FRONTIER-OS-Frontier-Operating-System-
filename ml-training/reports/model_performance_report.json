@@ -1,0 +1,42 @@
+[
+    {
+        "Model":"Airspace Autoencoder",
+        "Epoch":10,
+        "Loss":0.0085,
+        "Total_Time_s":45.45,
+        "Model_File":"airspace_ae.onnx",
+        "Size_KB":18.9775390625,
+        "Proxy_Precision":117.508813161,
+        "Cost_Benefit_Score":6.1919942714
+    },
+    {
+        "Model":"Narcotics GNN",
+        "Epoch":10,
+        "Loss":0.0352,
+        "Total_Time_s":45.45,
+        "Model_File":"narcotics_stgnn.onnx",
+        "Size_KB":33.1708984375,
+        "Proxy_Precision":28.4010224368,
+        "Cost_Benefit_Score":0.8562029904
+    },
+    {
+        "Model":"Maritime LSTM",
+        "Epoch":10,
+        "Loss":0.01057,
+        "Total_Time_s":45.45,
+        "Model_File":"maritime_lstm.onnx",
+        "Size_KB":118.091796875,
+        "Proxy_Precision":94.5179584121,
+        "Cost_Benefit_Score":0.8003770026
+    },
+    {
+        "Model":"Satellite YOLOv8",
+        "Epoch":10,
+        "Loss":1.245,
+        "Total_Time_s":45.45,
+        "Model_File":"frontier_sat_yolov8.onnx",
+        "Size_KB":19.0927734375,
+        "Proxy_Precision":0.8032063999,
+        "Cost_Benefit_Score":0.0420686079
+    }
+]

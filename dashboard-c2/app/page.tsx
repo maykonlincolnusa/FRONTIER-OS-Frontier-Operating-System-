@@ -22,8 +22,13 @@ import {
   Layers,
   Zap,
   Terminal,
+  FileText,
+  Network,
+  Clock,
 } from "lucide-react";
 import type { ThreatAlert, CameraPreset } from "./components/TacticalMap";
+import IllicitTradeHub, { InvestigationCase } from "../components/IllicitTradeHub";
+import EnterpriseModules from "../components/EnterpriseModules";
 
 const TacticalMap = dynamic(() => import("./components/TacticalMap"), {
   ssr: false,
@@ -202,7 +207,87 @@ const INITIAL_THREATS: ThreatAlert[] = [
     modal: "MARITIME_CONTAINER",
     speed_knots: 19.5,
     heading_deg: 40,
-    metadata: { port: "Port of Santos / Brazil", destination: "Houston" },
+    metadata: { port: "Port of Santos / Brazil", destination: "Antwerp / Houston" },
+  },
+  {
+    event_id: "init-08-eu-uk",
+    subsystem: "01-maritime-coastline",
+    ring: "RING_1_MARITIME",
+    lead_agency: "EUROPOL",
+    severity: 0.98,
+    latitude: 51.26,
+    longitude: 4.358,
+    target_id: "ANTWERP-FELIXSTOWE-MSCU552",
+    threat_type: "EUROPOL_UK_NCA_RIP_OFF_CONTAINER",
+    syndicate: "NDRANGHETA",
+    modal: "MARITIME_CONTAINER",
+    speed_knots: 14.2,
+    heading_deg: 285,
+    metadata: { origin: "Paranaguá/Santos -> Highway 10", clearing: "London LLP / BVI" },
+  },
+  {
+    event_id: "init-09-africa-hw10",
+    subsystem: "01-maritime-coastline",
+    ring: "RING_1_MARITIME",
+    lead_agency: "MAOC_N",
+    severity: 0.95,
+    latitude: 11.863,
+    longitude: -15.597,
+    target_id: "HIGHWAY10-BISSAU-MOTHERSHIP",
+    threat_type: "WEST_AFRICA_AIS_DARK_TRANSSHIPMENT",
+    syndicate: "PCC",
+    modal: "MARITIME_CONTAINER",
+    speed_knots: 6.4,
+    heading_deg: 15,
+    metadata: { corridor: "10°N Parallel (Natal BR -> Bissau -> Europe)" },
+  },
+  {
+    event_id: "init-10-mea-dubai",
+    subsystem: "03-narcotics-intel",
+    ring: "RING_2_FEDERAL",
+    lead_agency: "UK_OFSI",
+    severity: 0.97,
+    latitude: 25.204,
+    longitude: 55.27,
+    target_id: "DUBAI-DMCC-FUJAIRAH-GOLD",
+    threat_type: "AMAZON_GOLD_FOR_SHADOW_OIL_SWAP",
+    syndicate: "KINAHAN_CARTEL",
+    modal: "CLANDESTINE_AIRCRAFT",
+    speed_knots: 0,
+    heading_deg: 0,
+    metadata: { origin: "Pacaraima RR / Suriname", hub: "Dubai DMCC / Fujairah STS" },
+  },
+  {
+    event_id: "init-11-sisfron-foz",
+    subsystem: "04-criminal-interstate",
+    ring: "RING_2_FEDERAL",
+    lead_agency: "PRF_BR",
+    severity: 0.99,
+    latitude: -25.516,
+    longitude: -54.585,
+    target_id: "SISFRON-FOZ-BR277-BITREM",
+    threat_type: "TACHOGRAPH_AND_MIC_DTA_SEAL_SPOOF",
+    syndicate: "PCC",
+    modal: "HIGHWAY_FREIGHT",
+    speed_knots: 52,
+    heading_deg: 95,
+    metadata: { border: "Ponte da Amizade / Foz do Iguaçu (Arco Sul)" },
+  },
+  {
+    event_id: "init-12-sisfron-roraima",
+    subsystem: "02-airspace-shield",
+    ring: "RING_2_FEDERAL",
+    lead_agency: "FAB_BR",
+    severity: 0.95,
+    latitude: 4.479,
+    longitude: -61.147,
+    target_id: "RAB-CLONE-PTKJM-PACARAIMA",
+    threat_type: "CLONED_RAB_AIRCRAFT_GOLD_SMUGGLING",
+    syndicate: "PCC",
+    modal: "CLANDESTINE_AIRCRAFT",
+    speed_knots: 145,
+    heading_deg: 35,
+    metadata: { border: "Pacaraima / Yanomami (Arco Norte SISFRON)" },
   },
 ];
 
@@ -251,8 +336,20 @@ const INITIAL_HANDOFFS: JurisdictionHandoff[] = [
 export default function CommandCenterPage() {
   // Primary Command Mode
   const [activeView, setActiveView] = useState<
-    "operations" | "microservices" | "copilot" | "govdata"
-  >("operations");
+    | "intel"
+    | "operations"
+    | "borders_emea"
+    | "ross_anderson"
+    | "scanner"
+    | "network"
+    | "timeline"
+    | "cyber"
+    | "colab"
+    | "microservices"
+    | "copilot"
+    | "govdata"
+  >("intel");
+  const [lang, setLang] = useState<"en" | "pt">("pt");
 
   // Map & Telemetry State
   const [threats, setThreats] = useState<ThreatAlert[]>(INITIAL_THREATS);
@@ -289,10 +386,11 @@ export default function CommandCenterPage() {
   const [copilotLoading, setCopilotLoading] = useState<boolean>(false);
 
   // Gov Data State
+  const [ofacList, setOfacList] = useState<any[]>([]);
   const [fbiList, setFbiList] = useState<Fugitive[]>([]);
   const [flightsList, setFlightsList] = useState<Flight[]>([]);
   const [cbpSummary, setCbpSummary] = useState<Record<string, any> | null>(null);
-  const [govSubTab, setGovSubTab] = useState<"fbi" | "opensky" | "cbp">("fbi");
+  const [govSubTab, setGovSubTab] = useState<"ofac" | "fbi" | "opensky" | "cbp">("ofac");
 
   const gatewayUrl =
     process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000";
@@ -357,9 +455,10 @@ export default function CommandCenterPage() {
 
   useEffect(() => {
     fetchMeshStatus();
-    const interval = setInterval(fetchMeshStatus, 8000);
+    if (activeView !== "microservices") return;
+    const interval = setInterval(fetchMeshStatus, 10000);
     return () => clearInterval(interval);
-  }, [fetchMeshStatus]);
+  }, [fetchMeshStatus, activeView]);
 
   // 3. Trigger Live Microservice Inference
   const handleTriggerService = async (serviceId: string) => {
@@ -385,6 +484,10 @@ export default function CommandCenterPage() {
   // 4. Fetch Real Gov Data when tab opens
   useEffect(() => {
     if (activeView !== "govdata") return;
+    fetch(`${gatewayUrl}/api/v1/intel/ofac-sdn`)
+      .then((r) => r.json())
+      .then((d) => setOfacList(d.entries || []))
+      .catch(() => {});
     fetch(`${gatewayUrl}/api/v1/gov-data/fbi?limit=18`)
       .then((r) => r.json())
       .then((d) => setFbiList(d.fugitives || []))
@@ -466,96 +569,459 @@ export default function CommandCenterPage() {
     microservices.filter((m) => m.status === "ONLINE").length || 7;
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#060a12] text-slate-100 overflow-hidden select-none">
+    <div className="flex h-screen w-screen bg-[#060a12] text-slate-100 overflow-hidden select-none">
       {/* =====================================================================
-          TOP COMMAND BAR (Sleek 52px Military C4ISR Header)
+          ENTERPRISE LEFT NAVIGATION SIDEBAR (Clean, Structured SaaS Menu)
          ===================================================================== */}
-      <header className="h-13 shrink-0 bg-[#090e17] border-b border-slate-800/80 px-4 flex items-center justify-between z-30">
-        {/* Brand & Live Mesh Indicator */}
-        <div className="flex items-center space-x-3">
-          <div className="h-8 w-8 rounded-lg bg-sky-500/15 border border-sky-500/40 flex items-center justify-center text-sky-400">
-            <Shield className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-bold tracking-wider text-sm text-white">
-                FRONTIER-OS
-              </span>
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold">
-                C4ISR v2.5
-              </span>
+      <aside className="w-64 shrink-0 bg-[#090e17] border-r border-slate-800/90 flex flex-col justify-between z-40">
+        {/* Top Brand Logo */}
+        <div>
+          <div className="h-14 px-4 border-b border-slate-800/90 flex items-center space-x-3">
+            <div className="h-8 w-8 rounded-lg bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+              <Shield className="w-4 h-4" />
             </div>
-            <p className="text-[10px] text-slate-400 hidden sm:block">
-              Integrated Hemispheric Command — United States & Latin America
-            </p>
+            <div className="overflow-hidden">
+              <div className="flex items-center space-x-1.5">
+                <span className="font-bold tracking-wider text-sm text-white">
+                  FRONTIER-OS
+                </span>
+                <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
+                  v3.0
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 truncate">
+                {lang === "pt"
+                  ? "Inteligência, Carga, Petróleo & C4ISR"
+                  : "Illicit Trade, Oil, Cargo & C4ISR"}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Center Navigation Tabs (4 Clean Views) */}
-        <nav className="flex items-center space-x-1 bg-[#060a12] p-1 rounded-lg border border-slate-800">
-          <button
-            onClick={() => setActiveView("operations")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-              activeView === "operations"
-                ? "bg-sky-500 text-slate-950 font-bold shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Theater of Operations</span>
-          </button>
+          {/* Navigation Sections — Simplified 5-Step Guided Workflow */}
+          <div className="p-3 space-y-2.5 overflow-y-auto max-h-[calc(100vh-130px)]">
+            <div className="px-2 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {lang === "pt" ? "Fluxo Operacional (5 Passos)" : "Operational Workflow (5 Steps)"}
+            </div>
 
-          <button
-            onClick={() => setActiveView("microservices")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-              activeView === "microservices"
-                ? "bg-emerald-500 text-slate-950 font-bold shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Server className="w-3.5 h-3.5" />
-            <span>Microservices ({onlineServicesCount}/7)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView("copilot")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-              activeView === "copilot"
-                ? "bg-purple-500 text-slate-950 font-bold shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Bot className="w-3.5 h-3.5" />
-            <span>AI Copilot</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView("govdata")}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-              activeView === "govdata"
-                ? "bg-amber-500 text-slate-950 font-bold shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>Official US Data</span>
-          </button>
-        </nav>
-
-        {/* Right Telemetry Status */}
-        <div className="flex items-center space-x-3">
-          <div className="hidden lg:flex items-center space-x-2 bg-[#060a12] px-2.5 py-1 rounded-md border border-slate-800 text-[11px]">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                wsConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+            {/* 1. CASOS, EMPRESAS LARANJAS & LINHA DO TEMPO */}
+            <button
+              onClick={() => setActiveView("intel")}
+              className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                activeView === "intel" || activeView === "network" || activeView === "timeline"
+                  ? "bg-cyan-500/15 border-cyan-500/60 text-white shadow-md"
+                  : "bg-slate-900/50 border-slate-800/80 text-slate-300 hover:bg-slate-800/70 hover:text-white"
               }`}
-            />
-            <span className="font-mono text-slate-300">
-              {wsConnected ? "ACTIVE C2 STREAM" : "LOCAL RECON MODE"}
-            </span>
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2 text-xs font-bold">
+                  <Shield className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>{lang === "pt" ? "1. Casos & Investigação" : "1. Cases & Investigation"}</span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/50">
+                  6 Casos
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6 leading-snug">
+                {lang === "pt"
+                  ? "Petróleo, Contêineres, Empresas Laranjas e Replay"
+                  : "Oil, Containers, Shell Companies & Voyage Replay"}
+              </p>
+            </button>
+
+            {/* 2. MAPA TÁTICO GLOBAL */}
+            <button
+              onClick={() => setActiveView("operations")}
+              className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                activeView === "operations"
+                  ? "bg-sky-500/15 border-sky-500/60 text-white shadow-md"
+                  : "bg-slate-900/50 border-slate-800/80 text-slate-300 hover:bg-slate-800/70 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2 text-xs font-bold">
+                  <Globe className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>{lang === "pt" ? "2. Mapa Tático Global" : "2. Global Tactical Map"}</span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/50">
+                  LIVE
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6 leading-snug">
+                {lang === "pt"
+                  ? "Rotas Brasil, Américas, Europol/UK, África e Dubai"
+                  : "Brazil, Americas, Europol/UK, Africa & Dubai Routes"}
+              </p>
+            </button>
+
+            {/* 3. FRONTEIRAS DO BRASIL (SISFRON) + EUROPOL / UK / EMEA */}
+            <button
+              onClick={() => setActiveView("borders_emea")}
+              className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                activeView === "borders_emea"
+                  ? "bg-emerald-500/15 border-emerald-500/60 text-white shadow-md"
+                  : "bg-slate-900/50 border-slate-800/80 text-slate-300 hover:bg-slate-800/70 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2 text-xs font-bold">
+                  <Radio className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    {lang === "pt" ? "3. Fronteiras BR & Europa/UK" : "3. BR Borders & Europol/UK"}
+                  </span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">
+                  SISFRON
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6 leading-snug">
+                {lang === "pt"
+                  ? "9 Setores (16.886 km), Perícia PRF/RFB, Europol e UK NCA"
+                  : "9 Border Sectors, Highway/Seal Audit, Europol & UK NCA"}
+              </p>
+            </button>
+
+            {/* 4. AUDITAR CARGA, LACRE, EMPRESA OU CRIPTO */}
+            <button
+              onClick={() => setActiveView("scanner")}
+              className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                activeView === "scanner" || activeView === "cyber"
+                  ? "bg-amber-500/15 border-amber-500/60 text-white shadow-md"
+                  : "bg-slate-900/50 border-slate-800/80 text-slate-300 hover:bg-slate-800/70 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2 text-xs font-bold">
+                  <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    {lang === "pt" ? "4. Auditar Carga ou Empresa" : "4. Audit Cargo or Company"}
+                  </span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700/50">
+                  SCAN
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6 leading-snug">
+                {lang === "pt"
+                  ? "Testar Manifesto, Balança, Domínio Fantasma, Cripto e SHA-256"
+                  : "Test Manifest, Weighbridge, Shell Domain, Crypto & SHA-256"}
+              </p>
+            </button>
+
+            {/* 5. COPILOTO IA, LISTAS OFICIAIS & MODELOS COLAB */}
+            <button
+              onClick={() => setActiveView("colab")}
+              className={`w-full text-left p-2.5 rounded-xl border transition-all ${
+                activeView === "colab" ||
+                activeView === "copilot" ||
+                activeView === "govdata" ||
+                activeView === "microservices"
+                  ? "bg-purple-500/15 border-purple-500/60 text-white shadow-md"
+                  : "bg-slate-900/50 border-slate-800/80 text-slate-300 hover:bg-slate-800/70 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center space-x-2 text-xs font-bold">
+                  <Cpu className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>
+                    {lang === "pt" ? "5. Colab IA, Sanções & Sistema" : "5. Colab AI, Sanctions & System"}
+                  </span>
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700/50">
+                  ONNX 4/4
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6 leading-snug">
+                {lang === "pt"
+                  ? "Modelos Colab (.ONNX), Copiloto IA, OFAC/FBI e Microsserviços"
+                  : "Colab ONNX Models, AI Copilot, OFAC/FBI & Microservices"}
+              </p>
+            </button>
           </div>
         </div>
-      </header>
+
+        {/* Bottom Status & Language Footer */}
+        <div className="p-3 border-t border-slate-800/90 space-y-2 bg-[#060a12]/60">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase text-slate-400">
+              {lang === "pt" ? "Idioma / Language" : "Language"}
+            </span>
+            <div className="flex items-center bg-[#090e17] border border-slate-800 rounded-md p-0.5 text-[11px] font-bold">
+              <button
+                onClick={() => setLang("pt")}
+                className={`px-2 py-0.5 rounded transition ${
+                  lang === "pt"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🇧🇷 PT
+              </button>
+              <button
+                onClick={() => setLang("en")}
+                className={`px-2 py-0.5 rounded transition ${
+                  lang === "en"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-[#090e17] border border-slate-800 text-[10px]">
+            <span className="flex items-center space-x-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  wsConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+                }`}
+              />
+              <span className="font-mono text-slate-300">
+                {wsConnected ? "C2 STREAM ONLINE" : "LOCAL RECON"}
+              </span>
+            </span>
+            <span className="font-mono text-emerald-400">ONNX OK</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* =====================================================================
+          RIGHT MAIN WORKSPACE AREA (Header Breadcrumb + Active Module)
+         ===================================================================== */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Clean Contextual Top Bar */}
+        <header className="h-14 shrink-0 bg-[#090e17] border-b border-slate-800/80 px-5 flex items-center justify-between z-20">
+          <div>
+            <h1 className="text-sm font-bold text-white">
+              {activeView === "intel" &&
+                (lang === "pt"
+                  ? "🎯 Central de Dossiês & Cruzamento de Dados (Petróleo, Cargas, Empresas & Pessoas Listadas)"
+                  : "🎯 Investigation & Cross-Reference Hub (Crude Oil, Cargo, Shell Companies & Listed Persons)")}
+              {activeView === "operations" &&
+                (lang === "pt"
+                  ? "🌎 Centro Geoespacial C4ISR — 3 Anéis de Defesa & Corredores Pan-Americanos"
+                  : "🌎 Geospatial C4ISR Theater — 3 Defense Rings & Pan-American Corridors")}
+              {activeView === "scanner" &&
+                (lang === "pt"
+                  ? "📄 Scanner & Auditor de Manifesto, Fatura de Petróleo/Carga, Balança e Sanções (+ Colab ONNX)"
+                  : "📄 Real-Time Manifest, TBML Price, Weighbridge & Sanctions Auditor (+ Colab ONNX)")}
+              {activeView === "network" &&
+                (lang === "pt"
+                  ? "🕸️ Grafo Societário de Empresas Laranjas, Offshores e Beneficiários Finais (UBO)"
+                  : "🕸️ Corporate Shell Network & Ultimate Beneficial Owner (UBO) Link Analysis")}
+              {activeView === "timeline" &&
+                (lang === "pt"
+                  ? "⏱️ Linha do Tempo de Reconstrução da Viagem & Relatório Oficial COAF / FinCEN / OFAC"
+                  : "⏱️ Step-by-Step Voyage Replay Timeline & Official FinCEN / COAF / OFAC Dossier")}
+              {activeView === "borders_emea" &&
+                (lang === "pt"
+                  ? "🇧🇷🇪🇺🇬🇧 Fronteiras do Brasil (16.886 km SISFRON) + Europol (UE) + Reino Unido (NCA/OFSI) + África & Oriente Médio"
+                  : "🇧🇷🇪🇺🇬🇧 Brazil Borders (16,886 km SISFRON) + Europol (EU) + UK (NCA/OFSI) + West Africa & Middle East")}
+              {activeView === "ross_anderson" &&
+                (lang === "pt"
+                  ? "🔐 Engenharia de Segurança de Ross Anderson (Segurança Multilateral, Tacógrafos/Lacres, Mirror-Trading & Honeytokens)"
+                  : "🔐 Ross Anderson's Security Engineering (Multilateral Security, Tachograph/Seal Physics, Mirror-Trading & Canary Traps)")}
+              {activeView === "cyber" &&
+                (lang === "pt"
+                  ? "🛡️ Cyber Security, OSINT de Empresas, Intrusion Portuária (TOS/RFID) & Custódia SHA-256 / STIX 2.1"
+                  : "🛡️ Cyber Security, Shell Domain OSINT, Port OT/RFID Intrusion & SHA-256 / STIX 2.1")}
+              {activeView === "colab" &&
+                (lang === "pt"
+                  ? "🧠 Telemetria & Inferência Real dos Modelos Treinados no Google Colab (frontier_c4isr_deployment)"
+                  : "🧠 Google Colab Trained ONNX Deployment Telemetry & Live Inference")}
+              {activeView === "govdata" &&
+                (lang === "pt"
+                  ? "🏛️ Base Oficial: Lista de Sanções OFAC SDN, Procurados FBI Wanted, Radar OpenSky & Apreensões CBP"
+                  : "🏛️ Official Datasets: OFAC SDN Sanctions, FBI Wanted API, OpenSky Radar & CBP Seizures")}
+              {activeView === "copilot" &&
+                (lang === "pt"
+                  ? "🤖 Copiloto Analista IA — Investigação Assistida & Planos Táticos Inter-Agências"
+                  : "🤖 AI Case Analyst Copilot — Assisted Investigation & Inter-Agency Playbooks")}
+              {activeView === "microservices" &&
+                (lang === "pt"
+                  ? "⚙️ Malha de Microsserviços Distribuídos (Portas 8000–8006) & Infraestrutura"
+                  : "⚙️ Distributed Microservices Mesh (Ports 8000–8006) & Infrastructure")}
+            </h1>
+          </div>
+
+          {/* Contextual Sub-Tabs for the Active Step */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(activeView === "intel" || activeView === "network" || activeView === "timeline") && (
+              <>
+                <button
+                  onClick={() => setActiveView("intel")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "intel"
+                      ? "bg-cyan-500 text-slate-950 border-cyan-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  📋 Dossiês & Bloqueio
+                </button>
+                <button
+                  onClick={() => setActiveView("network")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "network"
+                      ? "bg-purple-500 text-slate-950 border-purple-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  🕸️ Empresas Laranjas (UBO)
+                </button>
+                <button
+                  onClick={() => setActiveView("timeline")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "timeline"
+                      ? "bg-amber-500 text-slate-950 border-amber-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  ⏱️ Replay da Viagem & COAF
+                </button>
+              </>
+            )}
+
+            {(activeView === "scanner" || activeView === "cyber") && (
+              <>
+                <button
+                  onClick={() => setActiveView("scanner")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "scanner"
+                      ? "bg-emerald-500 text-slate-950 border-emerald-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  📦 Auditar Manifesto / Carga / Peso
+                </button>
+                <button
+                  onClick={() => setActiveView("cyber")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "cyber"
+                      ? "bg-rose-500 text-slate-950 border-rose-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  🛡️ Auditar Empresa, Cripto & Custódia SHA-256
+                </button>
+              </>
+            )}
+
+            {(activeView === "colab" ||
+              activeView === "copilot" ||
+              activeView === "govdata" ||
+              activeView === "microservices") && (
+              <>
+                <button
+                  onClick={() => setActiveView("colab")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "colab"
+                      ? "bg-emerald-400 text-slate-950 border-emerald-300"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  🧠 Modelos Colab (.ONNX)
+                </button>
+                <button
+                  onClick={() => setActiveView("copilot")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "copilot"
+                      ? "bg-purple-500 text-slate-950 border-purple-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  🤖 Copiloto IA
+                </button>
+                <button
+                  onClick={() => setActiveView("govdata")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "govdata"
+                      ? "bg-rose-500 text-slate-950 border-rose-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  🏛️ Listas Oficiais (OFAC/FBI)
+                </button>
+                <button
+                  onClick={() => setActiveView("microservices")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                    activeView === "microservices"
+                      ? "bg-sky-500 text-slate-950 border-sky-400"
+                      : "bg-slate-900 text-slate-300 border-slate-800 hover:text-white"
+                  }`}
+                >
+                  ⚙️ Microsserviços ({onlineServicesCount}/7)
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Enterprise Problem-Solving Views (Scanner, Corporate Network, Timeline, Cyber, Borders/EMEA, Ross Anderson, Colab ONNX) */}
+        {(activeView === "scanner" ||
+          activeView === "network" ||
+          activeView === "timeline" ||
+          activeView === "cyber" ||
+          activeView === "borders_emea" ||
+          activeView === "ross_anderson" ||
+          activeView === "colab") && (
+          <EnterpriseModules
+            mode={activeView}
+            lang={lang}
+            apiBaseUrl={gatewayUrl}
+            onJumpToMap={(lat, lon, label) => {
+              const jumpTarget: ThreatAlert = {
+                event_id: `jump-${Date.now()}`,
+                target_id: label,
+                subsystem: "GLOBAL-C4ISR-EMEA-SISFRON",
+                threat_type: label,
+                ring: "RING_1_MARITIME",
+                lead_agency: "EUROPOL",
+                latitude: lat,
+                longitude: lon,
+                severity: 0.96,
+              };
+              setThreats((prev) => [jumpTarget, ...prev.filter((t) => t.target_id !== label)]);
+              setSelectedTarget(jumpTarget);
+              setActiveView("operations");
+            }}
+          />
+        )}
+
+      {/* =====================================================================
+          VIEW 0: ILLICIT TRADE, OIL, CARGO & SANCTIONS CROSS-REFERENCE HUB
+         ===================================================================== */}
+      {activeView === "intel" && (
+        <IllicitTradeHub
+          lang={lang}
+          apiBaseUrl={gatewayUrl}
+          onLocateOnMap={(lat, lon, caseItem: InvestigationCase) => {
+            const newTarget: ThreatAlert = {
+              event_id: caseItem.case_id,
+              target_id: caseItem.transport_asset.asset_name,
+              subsystem: caseItem.category,
+              threat_type: `${caseItem.category} — ${caseItem.listed_person.full_name}`,
+              ring: caseItem.transport_asset.current_ring,
+              lead_agency: caseItem.transport_asset.lead_agency,
+              latitude: lat,
+              longitude: lon,
+              severity: caseItem.risk_score,
+              theater: caseItem.theater,
+              syndicate: caseItem.syndicate,
+              modal: caseItem.modal,
+            };
+            setThreats((prev) => [
+              newTarget,
+              ...prev.filter((t) => t.target_id !== newTarget.target_id),
+            ]);
+            setSelectedTarget(newTarget);
+            setActiveView("operations");
+          }}
+          onAskCopilot={(prompt) => {
+            setActiveView("copilot");
+            handleSendCopilot(prompt);
+          }}
+        />
+      )}
 
       {/* =====================================================================
           VIEW 1: THEATER OF OPERATIONS (Clean Full-Screen Map + Focused Sidebar)
@@ -770,6 +1236,46 @@ export default function CommandCenterPage() {
                   🇧🇷 Brazil
                 </button>
                 <button
+                  onClick={() => setCameraPreset("brazil_borders")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "brazil_borders"
+                      ? "bg-emerald-400 text-slate-950 font-bold"
+                      : "text-emerald-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🛡️ Fronteiras BR (SISFRON)
+                </button>
+                <button
+                  onClick={() => setCameraPreset("uk_europe")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "uk_europe"
+                      ? "bg-indigo-400 text-slate-950 font-bold"
+                      : "text-indigo-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇬🇧🇪🇺 UK & Europol
+                </button>
+                <button
+                  onClick={() => setCameraPreset("west_africa")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "west_africa"
+                      ? "bg-orange-400 text-slate-950 font-bold"
+                      : "text-orange-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🌍 África (Highway 10)
+                </button>
+                <button
+                  onClick={() => setCameraPreset("middle_east")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "middle_east"
+                      ? "bg-rose-400 text-slate-950 font-bold"
+                      : "text-rose-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇦🇪 Oriente Médio (Dubai)
+                </button>
+                <button
                   onClick={() => setCameraPreset("colombia")}
                   className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
                     cameraPreset === "colombia"
@@ -830,8 +1336,12 @@ export default function CommandCenterPage() {
                   className="bg-[#060a12] border border-slate-700 text-slate-200 rounded px-2 py-1 text-[11px] font-semibold focus:outline-none focus:border-sky-500"
                 >
                   <option value="ALL">All Syndicates</option>
-                  <option value="PCC">PCC (Primeiro Comando)</option>
-                  <option value="CV">CV (Comando Vermelho)</option>
+                  <option value="PCC">PCC (Brasil / Transatlântico)</option>
+                  <option value="CV">CV (Comando Vermelho / Solimões)</option>
+                  <option value="NDRANGHETA">&apos;Ndrangheta (Europol / Antuérpia)</option>
+                  <option value="MOCRO_MAFFIA">Mocro Maffia (Roterdã / Antuérpia)</option>
+                  <option value="KINAHAN_CARTEL">Kinahan Cartel (UK / Dubai)</option>
+                  <option value="BALKAN_CARTEL">Balkan Cartel (Transatlântico)</option>
                   <option value="SINALOA_CARTEL">Sinaloa Cartel</option>
                   <option value="CJNG">CJNG (Jalisco)</option>
                   <option value="CLAN_DEL_GOLFO">Clan del Golfo</option>
@@ -952,6 +1462,18 @@ export default function CommandCenterPage() {
                 </div>
 
                 <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
+                  <button
+                    onClick={() => setActiveView("intel")}
+                    className="w-full py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>
+                      {lang === "pt"
+                        ? "🎯 Cruzar Dados (Pessoa Listada, Empresa & Carga)"
+                        : "🎯 Open Cross-Reference Dossier (Person & Cargo)"}
+                    </span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setActiveView("copilot");
@@ -1308,12 +1830,22 @@ export default function CommandCenterPage() {
       )}
 
       {/* =====================================================================
-          VIEW 4: OFFICIAL US GOVERNMENT DATA (FBI / OpenSky / CBP)
+          VIEW 4: OFFICIAL US GOVERNMENT DATA (OFAC SDN / FBI / OpenSky / CBP)
          ===================================================================== */}
       {activeView === "govdata" && (
         <div className="flex-1 overflow-y-auto p-6 bg-[#060a12]">
           <div className="max-w-7xl mx-auto space-y-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setGovSubTab("ofac")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  govSubTab === "ofac"
+                    ? "bg-cyan-500 text-slate-950"
+                    : "bg-[#090e17] text-slate-300 border border-slate-800"
+                }`}
+              >
+                🏛️ OFAC SDN & Interpol Watchlist ({ofacList.length})
+              </button>
               <button
                 onClick={() => setGovSubTab("fbi")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
@@ -1345,6 +1877,35 @@ export default function CommandCenterPage() {
                 📦 CBP Seizure Metrics (Fentanyl / Cocaine)
               </button>
             </div>
+
+            {govSubTab === "ofac" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {ofacList.map((entry: any) => (
+                  <div
+                    key={entry.sdn_id}
+                    className="p-4 rounded-xl bg-[#090e17] border border-slate-800 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-cyan-400 font-bold">
+                        {entry.sdn_id} • {entry.type}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40">
+                        {(entry.risk_score * 100).toFixed(0)}% RISK
+                      </span>
+                    </div>
+                    <div className="text-sm font-bold text-white">{entry.name}</div>
+                    <div className="text-xs text-amber-300">{entry.program}</div>
+                    <div className="text-xs text-slate-400">
+                      Jurisdiction: <strong className="text-slate-200">{entry.nationality}</strong> • Syndicate:{" "}
+                      <strong className="text-purple-300">{entry.syndicate}</strong>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-300">
+                      <strong>Linked Entities:</strong> {(entry.linked_entities || []).join(" | ")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {govSubTab === "fbi" && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1417,6 +1978,7 @@ export default function CommandCenterPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

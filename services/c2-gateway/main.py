@@ -12,6 +12,8 @@ from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import shared
+
 try:
     import asyncpg
 except ImportError:
@@ -24,6 +26,9 @@ from shared.connectors.latam_osint import (
     PANAMERICAN_NODES,
     LatamOSINTConnector,
 )
+from shared.connectors.illicit_trade_intel import IllicitTradeIntelEngine
+
+_intel_engine = IllicitTradeIntelEngine()
 from shared.events.schemas import (
     Agency,
     InternationalCorridorHandoffEvent,
@@ -462,43 +467,46 @@ MICROSERVICE_REGISTRY = [
 ]
 
 
+_MESH_CACHE: Dict[str, Any] = {"ts": 0.0, "payload": None}
+
+
 @app.get("/api/v1/microservices/status")
 async def get_microservices_status():
     """
-    Polls all microservices in the C4ISR Service Mesh and returns real-time health,
-    port, latency, loaded Deep Learning model, and agency jurisdiction.
+    Polls all microservices in the C4ISR Service Mesh in parallel with a 5s TTL cache.
     """
-    import time
     import httpx
 
-    results = []
-    async with httpx.AsyncClient(timeout=1.5) as client:
-        for svc in MICROSERVICE_REGISTRY:
-            if svc["port"] == 8000:
-                results.append({
+    now = time.perf_counter()
+    if _MESH_CACHE["payload"] is not None and (now - _MESH_CACHE["ts"]) < 5.0:
+        return _MESH_CACHE["payload"]
+
+    async def _probe(client: httpx.AsyncClient, svc: Dict[str, Any]) -> Dict[str, Any]:
+        if svc["port"] == 8000:
+            return {
+                **svc,
+                "status": "ONLINE",
+                "latency_ms": 0.3,
+                "active_ws_clients": len(manager.active_connections),
+            }
+        t0 = time.perf_counter()
+        try:
+            resp = await client.get(f"http://127.0.0.1:{svc['port']}/healthz")
+            latency = round((time.perf_counter() - t0) * 1000, 2)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
                     **svc,
                     "status": "ONLINE",
-                    "latency_ms": 0.4,
-                    "active_ws_clients": len(manager.active_connections),
-                })
-                continue
+                    "latency_ms": latency,
+                    "uptime_sec": data.get("uptime_sec", 0),
+                }
+            return {**svc, "status": "DEGRADED", "latency_ms": latency}
+        except Exception:
+            return {**svc, "status": "OFFLINE", "latency_ms": None}
 
-            t0 = time.perf_counter()
-            try:
-                resp = await client.get(f"http://127.0.0.1:{svc['port']}/healthz")
-                latency = round((time.perf_counter() - t0) * 1000, 2)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    results.append({
-                        **svc,
-                        "status": "ONLINE",
-                        "latency_ms": latency,
-                        "uptime_sec": data.get("uptime_sec", 0),
-                    })
-                else:
-                    results.append({**svc, "status": "DEGRADED", "latency_ms": latency})
-            except Exception:
-                results.append({**svc, "status": "OFFLINE", "latency_ms": None})
+    async with httpx.AsyncClient(timeout=0.8) as client:
+        results = list(await asyncio.gather(*[_probe(client, s) for s in MICROSERVICE_REGISTRY]))
 
     infra = [
         {"name": "PostgreSQL 16 + PostGIS 3.4", "port": 5432, "role": "Spatial Geofencing & Advisory Locks", "status": "ONLINE"},
@@ -507,13 +515,16 @@ async def get_microservices_status():
         {"name": "Redis 7 Distributed Lock", "port": 6379, "role": "Sub-ms Cross-Ring Mutual Exclusion", "status": "ONLINE"},
     ]
 
-    return {
+    payload = {
         "mesh_status": "OPERATIONAL",
         "online_count": sum(1 for r in results if r["status"] == "ONLINE"),
         "total_services": len(results),
         "microservices": results,
         "infrastructure": infra,
     }
+    _MESH_CACHE["ts"] = now
+    _MESH_CACHE["payload"] = payload
+    return payload
 
 
 @app.post("/api/v1/microservices/{service_id}/trigger")
@@ -605,6 +616,107 @@ async def authorize_interagency_handoff(handoff_id: str):
         "action": "INTERCEPTION_ORDER_DISPATCHED",
         "timestamp": time.time() if "time" in globals() else 1731000000.0,
     }
+
+
+# ============================================================================
+# ILLICIT TRADE, OIL, CARGO & SANCTIONED ENTITY CROSS-REFERENCE ENDPOINTS
+# ============================================================================
+
+class ExecuteActionBody(BaseModel):
+    action_id: str
+
+
+@app.get("/api/v1/intel/cases")
+async def list_illicit_trade_cases(category: str = "ALL"):
+    cases = _intel_engine.list_cases(category=category)
+    return {
+        "cases": cases,
+        "total": len(cases),
+        "action_history": _intel_engine.get_action_history(),
+    }
+
+
+@app.get("/api/v1/intel/cross-reference")
+async def search_cross_reference(q: str = ""):
+    return _intel_engine.cross_reference_search(query=q, fbi_wanted_cache=[])
+
+
+@app.post("/api/v1/intel/cases/{case_id}/execute-action")
+async def execute_case_resolution_action(case_id: str, req: ExecuteActionBody):
+    result = _intel_engine.execute_action(case_id=case_id, action_id=req.action_id)
+    return {
+        "result": result,
+        "action_history": _intel_engine.get_action_history(),
+    }
+
+
+@app.get("/api/v1/intel/colab-telemetry")
+async def get_colab_deployment_telemetry():
+    return _intel_engine.get_colab_deployment_telemetry()
+
+
+@app.post("/api/v1/intel/colab-live-sandbox")
+async def run_colab_live_sandbox_endpoint(payload: Dict[str, Any]):
+    return _intel_engine.run_colab_interactive_sandbox(payload)
+
+
+@app.post("/api/v1/intel/audit-manifest")
+async def audit_cargo_manifest_endpoint(payload: Dict[str, Any]):
+    return _intel_engine.audit_cargo_manifest(payload)
+
+
+@app.get("/api/v1/intel/ofac-sdn")
+async def get_ofac_sdn_endpoint(q: str = ""):
+    return _intel_engine.get_ofac_sdn_registry(query=q)
+
+
+@app.get("/api/v1/intel/corporate-network")
+async def get_corporate_network_endpoint(case_id: str = "ALL"):
+    return _intel_engine.get_corporate_network_graph(case_id=case_id)
+
+
+@app.get("/api/v1/intel/cases/{case_id}/timeline-and-dossier")
+async def get_case_timeline_and_dossier_endpoint(case_id: str):
+    return _intel_engine.get_case_timeline_and_dossier(case_id=case_id)
+
+
+@app.post("/api/v1/intel/cyber-scan")
+async def scan_cyber_osint_endpoint(payload: Dict[str, Any]):
+    return _intel_engine.scan_cyber_osint_and_crypto(payload)
+
+
+@app.get("/api/v1/intel/cyber-alerts")
+async def get_port_maritime_cyber_alerts_endpoint():
+    return _intel_engine.get_port_and_maritime_cyber_alerts()
+
+
+@app.get("/api/v1/intel/custody-and-stix")
+async def get_custody_and_stix_endpoint():
+    return _intel_engine.get_cryptographic_chain_of_custody_and_stix()
+
+
+@app.get("/api/v1/intel/europol-uk-emea-brazil")
+async def get_europol_uk_emea_and_brazil_endpoint():
+    return _intel_engine.get_europol_uk_emea_and_brazil_borders()
+
+
+@app.post("/api/v1/intel/brazil-border-verify")
+async def verify_brazil_border_crossing_endpoint(payload: Dict[str, Any]):
+    return _intel_engine.verify_brazil_border_crossing(payload)
+
+
+@app.get("/api/v1/intel/ross-anderson-suite")
+async def get_ross_anderson_security_suite_endpoint():
+    return _intel_engine.get_ross_anderson_security_suite()
+
+
+@app.post("/api/v1/intel/ross-anderson-execute")
+async def execute_ross_anderson_protocol_endpoint(payload: Dict[str, Any]):
+    return _intel_engine.execute_ross_anderson_protocol(payload)
+
+
+
+
 
 
 
