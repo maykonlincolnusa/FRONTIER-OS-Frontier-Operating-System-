@@ -3,7 +3,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch 2.x](https://img.shields.io/badge/PyTorch-2.x-EE4C2C.svg?logo=pytorch)](https://pytorch.org/)
-[![Google Colab TPU](https://img.shields.io/badge/Google%20Colab-TPU%20Accelerated-F9AB00.svg?logo=googlecolab)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/ml-training/frontier_c4isr_tpu_training.ipynb)
+[![Google Colab GPU](https://img.shields.io/badge/Google%20Colab-GPU%20Training%20Suite-F9AB00.svg?logo=googlecolab)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/00_FRONTIER_C4ISR_Master_Colab_Training_Suite.ipynb)
 [![PostgreSQL 16 + PostGIS](https://img.shields.io/badge/Database-PostgreSQL%2016%20%2B%20PostGIS-336791.svg?logo=postgresql)](https://postgis.net/)
 [![Redpanda Kafka](https://img.shields.io/badge/Event%20Bus-Redpanda%20Kafka-ED3A25.svg?logo=apachekafka)](https://redpanda.com/)
 [![Qdrant Vector DB](https://img.shields.io/badge/Vector%20DB-Qdrant-DC2626.svg)](https://qdrant.tech/)
@@ -18,53 +18,21 @@
 
 The architecture unifies live public telemetry, open-source intelligence (OSINT), and Deep Learning perception across federal, maritime, airspace, and interstate jurisdictions (USCG, US Navy, USAF, FAA, US Army, NGA, CBP, DEA, FBI, and USDOT).
 
-```mermaid
-flowchart TD
-    subgraph DataSources["Public Real-World Telemetry & Feeds"]
-        AIS["MarineCadastre AIS"]
-        ADSB["OpenSky Network ADS-B"]
-        FBI["FBI Wanted API"]
-        DEA["CBP Seizures & NFLIS"]
-        TIGER["US Census TIGER Shapefiles"]
-    end
+---
 
-    subgraph Subsystems["The 5 Autonomous Subsystems"]
-        S01["01-maritime-coastline<br/>(USCG / Navy)<br/>Bi-GRU Anomaly Detector"]
-        S02["02-airspace-shield<br/>(USAF / FAA)<br/>Flight Autoencoder"]
-        S03["03-narcotics-intel<br/>(DEA / CBP)<br/>Spatio-Temporal GNN"]
-        S04["04-criminal-interstate<br/>(FBI / USDOT)<br/>ArcFace Vector Search"]
-        S05["05-geospatial-recon<br/>(US Army / NGA)<br/>TIGER & Satellite Recon"]
-    end
+## 2. Tactical Command & Control (C2) Visualizer
 
-    subgraph EventBus["High-Throughput Event Bus (Redpanda / Kafka)"]
-        TOPIC_ALERTS["alerts.* (Threat Alerts)"]
-        TOPIC_HANDOFF["events.jurisdiction.handoff"]
-        TOPIC_RAW["raw.* (Telemetry Stream)"]
-    end
+| Hemispheric Operational Theater (Americas Overview) | Continental US & 3 Defense Rings |
+| :---: | :---: |
+| ![Hemispheric Command](docs/screenshots/c4isr_hemispheric_command.jpg) | ![Continental US 50 States](docs/screenshots/c4isr_us_50_states.jpg) |
 
-    subgraph Persistence["Storage & Spatial Intelligence Layer"]
-        POSTGIS[("PostgreSQL 16 + PostGIS<br/>3 Security Rings Geofence<br/>Tracked Entities & Handoffs")]
-        QDRANT[("Qdrant Vector DB<br/>FBI Facial Embeddings (512-dim)")]
-        REDIS[("Redis 7<br/>C2 State Cache & PubSub")]
-    end
-
-    subgraph C2Layer["Command & Control (C2) Presentation"]
-        GATEWAY["C2 Gateway<br/>FastAPI + WebSockets"]
-        DASHBOARD["Tactical C2 Dashboard<br/>Next.js + Deck.gl + MapLibre"]
-    end
-
-    DataSources --> Subsystems
-    Subsystems --> EventBus
-    EventBus <--> POSTGIS
-    EventBus <--> QDRANT
-    EventBus --> GATEWAY
-    POSTGIS --> GATEWAY
-    GATEWAY --> DASHBOARD
-```
+| Transnational Supply Corridors (South America to US) |
+| :---: |
+| ![South America Corridors](docs/screenshots/c4isr_south_america_corridors.jpg) |
 
 ---
 
-## 2. The 3 Defense-in-Depth Security Rings
+## 3. The 3 Defense-in-Depth Security Rings
 
 Target tracking and interception operate under a **Defense-in-Depth** doctrine. When an entity (vessel, aircraft, ground vehicle, or individual) crosses from one jurisdictional polygon to another, **PostGIS** detects the boundary breach and emits a `JURISDICTION_HANDOFF` event on the Redpanda message bus:
 
@@ -76,40 +44,37 @@ Target tracking and interception operate under a **Defense-in-Depth** doctrine. 
 
 ---
 
-## 3. Core Subsystems Matrix
+## 4. Microservices Mesh Architecture (Ports 8000–8006)
 
-| Subsystem Directory | Domain & Mission | Live Public Data Source | ML / Deep Learning Model |
-| :--- | :--- | :--- | :--- |
-| `services/01-maritime-coastline` | Maritime surveillance, loitering detection, dark ship identification | MarineCadastre.gov AIS & NOAA NDBC Buoys | **PyTorch Bi-GRU**: Detects AIS transponder shutdowns and ship-to-ship offload meetings. |
-| `services/02-airspace-shield` | Low-altitude clandestine flight interception along sovereign borders | OpenSky Network REST API & FAA TFRs | **PyTorch Autoencoder**: Reconstructs normal airway profiles; anomalies flag low-altitude radar evasion. |
-| `services/03-narcotics-intel` | Intermodal narcotics flow and seizure risk forecasting | CBP Drug Seizures, DEA NFLIS & HIDTA zones | **Spatio-Temporal Graph Neural Network (ST-GNN)**: Predicts POE transit risks. |
-| `services/04-criminal-interstate` | High-priority fugitive recognition and highway surveillance | FBI Wanted API & State 511 traffic feeds | **ArcFace + Qdrant**: 512-dimensional facial cosine similarity + YOLOv8 ALPR. |
-| `services/05-geospatial-recon` | Satellite surveillance & boundary mapping | US Census TIGER/Line Shapefiles & USGS/Sentinel | **YOLOv8 on Satellite Imagery**: Automated detection in border zones. |
-| `services/c2-gateway` | Real-time C2 situational awareness distribution | Unified internal event bus | **FastAPI Async Engine + WebSocket Streamer**: Low-latency feed to client dashboards. |
+Each domain capability runs as an isolated microservice supervised by `scripts/start_microservices_mesh.py`. Computationally intensive AI tasks run within an isolated `InferenceProcessPool` utilizing `multiprocessing.Lock` to guarantee safe thread execution with PyTorch and ONNX Runtime:
 
----
-
-## 4. Google Colab TPU Training
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/ml-training/frontier_c4isr_tpu_training.ipynb)
-
-Project Frontier models can be trained on **Google Cloud TPU v2/v3/v4/v5e** runtimes via PyTorch XLA.
-
-### Running on Google Colab TPU
-1. Open the interactive notebook: [`ml-training/frontier_c4isr_tpu_training.ipynb`](file:///Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS%20(Frontier%20Operating%20System)%20/ml-training/frontier_c4isr_tpu_training.ipynb).
-2. In Colab, select: **Runtime $\rightarrow$ Change runtime type $\rightarrow$ Hardware accelerator: TPU v2 or v5e**.
-3. Execute the cells to detect the TPU device, generate/stream flight and maritime trajectories, and train the Deep Learning models at scale.
-
-### Running Locally with Automatic Fallback
-The training pipeline (`train_tpu_colab.py`) dynamically detects hardware and switches automatically between **TPU (XLA)**, **Apple Silicon Metal (MPS)**, **NVIDIA CUDA**, and **Host CPU**:
-
-```bash
-uv run python ml-training/train_tpu_colab.py
-```
+| Port | Service ID | Service Name | Responsible Agencies | Deep Learning Model / Engine |
+| :--- | :--- | :--- | :--- | :--- |
+| `:8000` | `00-c2-gateway` | C2 API Gateway & WebSocket Mesh | JTF C4ISR | Cross-Ring Fusion Engine & PostGIS Advisory Locks |
+| `:8001` | `01-maritime-coastline` | Maritime & Blue Border Shield | USCG & US Navy | `maritime_lstm.onnx` (`TrajectoryAnomalyLSTM`) |
+| `:8002` | `02-airspace-shield` | Airspace & Radar Shield | USAF, CBP AMO & FAA | `airspace_ae.onnx` (`FlightStateAutoencoder`) |
+| `:8003` | `03-narcotics-intel` | Narcotics ST-GNN Intelligence | DEA, CBP & HIDTA | `narcotics_stgnn.onnx` (`SpatioTemporalGNN`) |
+| `:8004` | `04-criminal-interstate` | Interstate Biometrics & ALPR | FBI, DEA & State Police | `ArcFace-512` + `YOLOv8-ALPR` (Qdrant Vector DB) |
+| `:8005` | `05-geospatial-recon` | Orbital & Drone Recon | US Army, NGA & CBP | `frontier_sat_yolov8.onnx` (Sentinel-2 / xView) |
+| `:8006` | `06-c2-copilot` | Multi-Agent Tactical Copilot | Joint Command Staff | Multi-Agent RAG + Text-to-PostGIS + GraphRAG |
 
 ---
 
-## 5. Monorepo Directory Architecture
+## 5. Google Colab GPU Training Suite (`notebooks/colab/`)
+
+Interactive, production-ready notebooks configured for NVIDIA GPUs (T4 / L4 / A100) with PyTorch Mixed Precision (`torch.amp.autocast('cuda')`), loss curves, dynamic-axes ONNX export, and automated weights packaging:
+
+| Notebook | Focus | Models & Outputs | Colab Link |
+| :--- | :--- | :--- | :---: |
+| **00. Master C4ISR GPU Training Suite** | Full End-to-End Pipeline & Real US Gov Datasets | All 4 ONNX models packaged into `frontier_c4isr_onnx_weights.zip` | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/00_FRONTIER_C4ISR_Master_Colab_Training_Suite.ipynb) |
+| **01. Maritime AIS LSTM** | MarineCadastre AIS Trajectory Autoencoder | `maritime_lstm.onnx` (Dark Ships & Submersibles) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/01_Maritime_AIS_LSTM_Colab_GPU.ipynb) |
+| **02. Airspace ADS-B Autoencoder** | OpenSky Low-Altitude Flight Vector Reconstructor | `airspace_ae.onnx` (Clandestine Radar Evasion) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/02_Airspace_ADSB_Autoencoder_Colab_GPU.ipynb) |
+| **03. Narcotics Spatio-Temporal GNN** | CBP POE Seizures & HIDTA Interstates (I-10, I-35, I-95) | `narcotics_stgnn.onnx` (Corridor 24h Risk Forecast) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/03_Narcotics_STGNN_Corridors_Colab_GPU.ipynb) |
+| **04. Satellite YOLOv8 & FBI Biometrics** | Sentinel-2 / xView Satellite Tile & ArcFace Embeddings | `frontier_sat_yolov8.onnx` + Qdrant 512-d Search | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/04_Satellite_YOLOv8_xView_Recon_Colab_GPU.ipynb) |
+
+---
+
+## 6. Monorepo Directory Architecture
 
 ```text
 frontier-c4isr/
@@ -119,111 +84,55 @@ frontier-c4isr/
 ├── .env.example                    # Environment Configuration Template
 ├── pyproject.toml                  # Python 3.12+ project definition & dependencies
 ├── shared/                         # Shared Core Library across all microservices
+│   ├── concurrency/                # InferenceProcessPool (spawn + Locks) & Distributed Lock
 │   ├── events/                     # Pydantic v2 event contracts (Kafka schemas)
 │   ├── geo/                        # PostGIS utilities, Haversine, and 3-Ring Geofencing
 │   └── config/                     # Pydantic Settings (Postgres, Kafka, Qdrant, Redis)
 ├── services/                       # Autonomous Microservices & Workers
-│   ├── 01-maritime-coastline/      # USCG & Navy (AIS Ingestion + Bi-GRU Anomaly)
+│   ├── 01-maritime-coastline/      # USCG & Navy (AIS Ingestion + Bi-GRU / LSTM Anomaly)
 │   ├── 02-airspace-shield/         # USAF & FAA (OpenSky ADS-B + Flight Autoencoder)
 │   ├── 03-narcotics-intel/         # DEA & CBP (Seizure hot-spots + ST-GNN)
 │   ├── 04-criminal-interstate/     # FBI & USDOT (FBI Wanted API + Qdrant Face Match)
 │   ├── 05-geospatial-recon/        # US Army & NGA (TIGER Shapefiles + Satellite Recon)
-│   └── c2-gateway/                 # C2 Gateway & Real-time WebSocket Server
-├── ml-training/                    # Deep Learning datasets, models, and TPU training
-│   ├── datasets/                   # OpenSky client, FBI client, and synthetic generators
-│   ├── models/                     # PyTorch Autoencoder, Bi-GRU, and Face Matcher
-│   ├── frontier_c4isr_tpu_training.ipynb  # Interactive Google Colab TPU Notebook
-│   └── train_tpu_colab.py          # Accelerator-agnostic training script
-├── infra/
-│   ├── postgres/init-postgis.sql   # PostGIS schemas, spatial indexes, and 3-Rings seed
-│   └── scripts/                    # Census TIGER shapefile download utilities
-├── dashboard-c2/                   # Next.js + Deck.gl Tactical Command & Control UI
+│   ├── c2-gateway/                 # C2 Gateway & Real-time WebSocket Server
+│   └── c2-copilot/                 # Multi-Agent Tactical Copilot (SSE Streaming)
+├── notebooks/colab/                # Production Google Colab GPU Training Notebooks (.ipynb)
+├── ml-training/                    # Deep Learning datasets, models, and training scripts
+├── infra/                          # PostGIS schemas, OKE Kubernetes manifests, OCI scripts
+├── dashboard-c2/                   # Next.js 14 Tactical Command & Control Interface
 └── tests/                          # Automated Pytest suite
 ```
 
 ---
 
-## 6. Quickstart Guide
+## 7. Quickstart Guide
 
-### Prerequisites
-* **Python 3.12+** with [uv](https://github.com/astral-sh/uv) package manager.
-* **Docker & Docker Compose** (for local PostGIS, Redpanda, Qdrant, and Redis).
-
-### Step 1: Start Infrastructure Services
+### Step 1: Start Core Infrastructure Containers
 ```bash
 docker compose up -d
 ```
 Verifies and launches:
-* **PostgreSQL 16 + PostGIS 3.4** on port `5432` (auto-executes `init-postgis.sql`).
-* **Redpanda (Kafka)** on ports `9092` (Kafka API) and `8080` (Redpanda Console Web UI).
+* **PostgreSQL 16 + PostGIS 3.4** on port `5432`.
+* **Redpanda (Kafka)** on ports `9092` (Kafka API) and `8080` (Console UI).
 * **Qdrant Vector DB** on ports `6333` (HTTP) and `6334` (gRPC).
 * **Redis 7** on port `6379`.
 
-### Step 2: Install Python Dependencies
+### Step 2: Launch the 7 Microservices Mesh
 ```bash
-uv sync
+# Starts C2 Gateway (8000) and Subsystems 01-06 (8001-8006)
+uv run python scripts/start_microservices_mesh.py
 ```
 
-### Step 3: Run Automated Test Suite
+### Step 3: Launch the C4ISR Command Center UI
+```bash
+npm run dev --prefix dashboard-c2
+```
+Access the tactical interface at **`http://localhost:3000`**.
+
+---
+
+## 8. Automated Test Suite
 ```bash
 uv run pytest -q --tb=short
 ```
-
----
-
-## 7. Event Bus Standard Contracts (Pydantic v2)
-
-All microservices communicate asynchronously via Redpanda using strictly typed JSON event contracts:
-
-### Threat Alert Event (`ThreatAlertEvent`)
-```json
-{
-  "event_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-  "timestamp": "2026-11-07T19:30:00Z",
-  "subsystem": "02-airspace-shield",
-  "ring": "RING_2_FEDERAL",
-  "lead_agency": "USAF",
-  "severity": 0.89,
-  "latitude": 31.2541,
-  "longitude": -106.4215,
-  "target_id": "AIR-CLANDESTINE-104",
-  "threat_type": "LOW_ALT_BORDER_INTRUSION",
-  "metadata": {
-    "altitude_ft": 650.0,
-    "speed_knots": 125.0,
-    "reconstruction_mse": 0.182
-  }
-}
-```
-
-### Jurisdiction Handoff Event (`JurisdictionHandoffEvent`)
-```json
-{
-  "handoff_id": "4a7f01c2-19e4-4a21-8319-38b47291a271",
-  "timestamp": "2026-11-07T19:30:15Z",
-  "target_id": "VESSEL-DARK-801",
-  "from_ring": "RING_1_MARITIME",
-  "to_ring": "RING_2_FEDERAL",
-  "from_agency": "USCG",
-  "to_agency": "CBP",
-  "last_known_lat": 26.042,
-  "last_known_lon": -97.145,
-  "reason": "Vessel beached on South Padre Island outside authorized port of entry."
-}
-```
-
----
-
-## 8. Development Roadmap
-
-- [x] **Phase 1 (Infra & Core):** Monorepo scaffolding, `shared/` package, `docker-compose.yml`, PostGIS 3-Rings spatial definitions, and automated test suite.
-- [x] **Phase 2 (Datasets & Deep Learning):** OpenSky ADS-B client, FBI Wanted API integration, Flight Autoencoder, Maritime Bi-GRU, Qdrant facial vector search, and Google Colab TPU distributed training.
-- [x] **Phase 3 (Active Ingestion & Geofencing Engine):** SpatioTemporalGNN narcotics intelligence, satellite reconnaissance, PostGIS transactional geofencing, high-speed C2 WebSocket gateway, and Next.js tactical dashboard.
-- [x] **Phase 4 (Deep Learning Suite & Intelligence Fusion):** End-to-end ONNX Runtime pipelines with dynamic batching, Multi-Agency Cross-Ring Entity Resolution (`JointTaskForceIncident`), Qdrant biometric matching, and automated 3-Act Joint Operation simulation.
-
----
-
-## 9. Security & Governance
-
-Project Frontier operates under defense-in-depth principles, strict role-based access control (RBAC), and complies with inter-agency jurisdictional boundaries. Real-time telemetry is restricted according to statutory legal authorizations.
-
+*All 25 unit and integration tests passing.*

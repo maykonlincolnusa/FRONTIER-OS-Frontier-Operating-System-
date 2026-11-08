@@ -34,7 +34,6 @@ export default function TacticalMap({
   onSelectTarget,
   ringFilter,
   cameraPreset,
-  onPresetChange,
 }: TacticalMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -53,7 +52,6 @@ export default function TacticalMap({
   const [showCartelRoutes, setShowCartelRoutes] = useState<boolean>(true);
   const [showRings, setShowRings] = useState<boolean>(true);
 
-  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -68,13 +66,11 @@ export default function TacticalMap({
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Base Tile: High-Res ESRI Satellite
     const baseTile = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       { maxZoom: 18 }
     ).addTo(map);
 
-    // Crisp Official Boundaries & Places Overlay (Countries, US States, Cities)
     const labelsTile = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       { maxZoom: 18, opacity: 0.9 }
@@ -92,13 +88,12 @@ export default function TacticalMap({
     markersLayerRef.current = markersGroup;
     mapInstanceRef.current = map;
 
-    // Initial Hemispheric Bounds (USA + South America)
     map.fitBounds([
       [-55.0, -125.0],
       [50.0, -34.0],
     ]);
 
-    // 1. South America Interactive Intelligence Layer (Ultra-clean hover)
+    // 1. South America Interactive Intelligence Layer
     fetch("/south_america.json")
       .then((res) => res.json())
       .then((data) => {
@@ -116,19 +111,19 @@ export default function TacticalMap({
             };
           },
           onEachFeature: (feature, layer) => {
-            const namePt = feature.properties?.name_pt || feature.properties?.name || "País";
-            const threatRole = feature.properties?.threat_role || "Monitoramento";
+            const name = feature.properties?.name || "Country";
+            const threatRole = feature.properties?.threat_role || "MONITORING";
             const roleMap: Record<string, string> = {
-              ORIGIN_COCAINE: "Zona Primária de Origem & Laboratórios (Monitoramento DEA)",
-              PRODUCER_TRANSIT: "Hub Logístico Atlântico, Portos & Calha Amazônica",
-              TRANSIT_AIR_MARITIME: "Vigilância de Pistas Clandestinas & Saída Caribe",
-              TRANSIT_PACIFIC: "Corredor Marítimo Pacífico (Submersíveis)",
+              ORIGIN_COCAINE: "Primary Narcotics Production & Lab Zone (DEA Surveillance)",
+              PRODUCER_TRANSIT: "Atlantic Maritime Hub, Ports & Amazon Basin Corridor",
+              TRANSIT_AIR_MARITIME: "Clandestine Airstrips & Caribbean Maritime Departure",
+              TRANSIT_PACIFIC: "Eastern Pacific Semi-Submersible Transit Corridor",
             };
-            const desc = roleMap[threatRole] || "Monitoramento Estratégico Hemisférico";
+            const desc = roleMap[threatRole] || "Hemispheric Strategic Surveillance";
 
             layer.bindTooltip(
               `<div style="font-family: system-ui, sans-serif; padding: 2px 4px;">
-                <div style="font-weight: 700; color: #34d399; font-size: 12px;">${namePt}</div>
+                <div style="font-weight: 700; color: #34d399; font-size: 12px;">${name}</div>
                 <div style="color: #cbd5e1; font-size: 10px;">${desc}</div>
               </div>`,
               { sticky: true, className: "tactical-clean-tooltip" }
@@ -148,7 +143,7 @@ export default function TacticalMap({
       })
       .catch(() => {});
 
-    // 2. US 50 States Interactive Layer (Ultra-clean hover)
+    // 2. US 50 States Interactive Layer
     fetch("/us_states.json")
       .then((res) => res.json())
       .then((data) => {
@@ -175,7 +170,7 @@ export default function TacticalMap({
                   ${name} (${code})
                 </span>
                 <div style="color: #94a3b8; font-size: 10px;">
-                  ${isBorder ? "Anel 2 (Fronteira Federal) & Anel 3" : "Jurisdição Interestadual (Anel 3 - FBI/DEA)"}
+                  ${isBorder ? "Ring 2 (Federal Border) & Ring 3" : "Interstate Jurisdiction (Ring 3 - FBI/DEA)"}
                 </div>
               </div>`,
               { sticky: true, className: "tactical-clean-tooltip" }
@@ -195,7 +190,7 @@ export default function TacticalMap({
       })
       .catch(() => {});
 
-    // 3. Transnational Maritime & Air Supply Routes (Sleek thin vectors)
+    // 3. Transnational Maritime & Air Supply Routes
     const routes: Array<{ coords: L.LatLngExpression[]; color: string; label: string }> = [
       {
         coords: [
@@ -206,7 +201,7 @@ export default function TacticalMap({
           [32.5, -117.1],
         ],
         color: "#10b981",
-        label: "<b>Rota Marítima do Pacífico (JIATF-South)</b><br/>Colômbia ➔ Galápagos ➔ Sinaloa ➔ Califórnia",
+        label: "<b>Eastern Pacific Maritime Route (JIATF-South)</b><br/>Colombia ➔ Galapagos ➔ Sinaloa ➔ California",
       },
       {
         coords: [
@@ -215,7 +210,7 @@ export default function TacticalMap({
           [25.7, -80.2],
         ],
         color: "#06b6d4",
-        label: "<b>Corredor Marítimo do Caribe (USCG / DEA)</b><br/>Colômbia/Venezuela ➔ Rep. Dominicana ➔ Flórida (Anel 1)",
+        label: "<b>Caribbean Maritime Corridor (USCG / DEA)</b><br/>Colombia/Venezuela ➔ Dominican Republic ➔ Florida (Ring 1)",
       },
       {
         coords: [
@@ -225,7 +220,7 @@ export default function TacticalMap({
           [29.7, -95.0],
         ],
         color: "#38bdf8",
-        label: "<b>Rota Atlântica de Contêineres</b><br/>Porto de Santos (Brasil) ➔ Caribe ➔ Golfo do México (Houston)",
+        label: "<b>Atlantic Container Route</b><br/>Port of Santos (Brazil) ➔ Caribbean ➔ Gulf of Mexico (Houston)",
       },
     ];
 
@@ -240,8 +235,7 @@ export default function TacticalMap({
         .addTo(cartelsGroup);
     });
 
-    // 4. The 3 C4ISR Defense Rings (Crisp, non-intrusive lines)
-    // Ring 2: US-Mexico Southern Border Line
+    // 4. The 3 C4ISR Defense Rings
     const southernBorderLine: L.LatLngExpression[] = [
       [32.53, -117.12],
       [32.72, -114.72],
@@ -256,13 +250,12 @@ export default function TacticalMap({
       weight: 2.5,
       opacity: 0.9,
     })
-      .bindTooltip("<b>ANEL 2: Fronteira Federal Sul (CBP / US Army / USAF)</b>", {
+      .bindTooltip("<b>RING 2: US-Mexico Federal Border (CBP / US Army / USAF)</b>", {
         sticky: true,
         className: "tactical-clean-tooltip",
       })
       .addTo(ringsGroup);
 
-    // Ring 1: Gulf & Florida Maritime Approaches
     const maritimePerimeter: L.LatLngExpression[] = [
       [25.90, -97.49],
       [23.50, -90.00],
@@ -275,13 +268,12 @@ export default function TacticalMap({
       dashArray: "4, 6",
       opacity: 0.85,
     })
-      .bindTooltip("<b>ANEL 1: Perímetro Marítimo ZEE (USCG / US Navy)</b>", {
+      .bindTooltip("<b>RING 1: Maritime EEZ Perimeter (USCG / US Navy)</b>", {
         sticky: true,
         className: "tactical-clean-tooltip",
       })
       .addTo(ringsGroup);
 
-    // Ring 3: Primary Interstate Corridors (I-10 & I-35)
     const i10Line: L.LatLngExpression[] = [
       [34.0, -118.2],
       [32.2, -110.9],
@@ -295,7 +287,7 @@ export default function TacticalMap({
       weight: 1.8,
       opacity: 0.75,
     })
-      .bindTooltip("<b>ANEL 3: Corredor Interestadual I-10 (DEA / FBI)</b>", {
+      .bindTooltip("<b>RING 3: Interstate I-10 Corridor (DEA / FBI)</b>", {
         sticky: true,
         className: "tactical-clean-tooltip",
       })
@@ -307,7 +299,6 @@ export default function TacticalMap({
     };
   }, []);
 
-  // Respond to External Camera Preset Changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -343,7 +334,6 @@ export default function TacticalMap({
     }
   }, [cameraPreset]);
 
-  // Fly to Selected Target smoothly
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedTarget) return;
     mapInstanceRef.current.flyTo([selectedTarget.latitude, selectedTarget.longitude], 6, {
@@ -351,7 +341,6 @@ export default function TacticalMap({
     });
   }, [selectedTarget]);
 
-  // Switch Base Map Theme
   useEffect(() => {
     if (!mapInstanceRef.current || !baseTilesRef.current) return;
     const map = mapInstanceRef.current;
@@ -389,7 +378,6 @@ export default function TacticalMap({
     }
   }, [mapTheme]);
 
-  // Layer Toggles
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layer = southAmericaLayerRef.current;
@@ -418,7 +406,6 @@ export default function TacticalMap({
     showRings ? map.addLayer(layer) : map.removeLayer(layer);
   }, [showRings]);
 
-  // Render Target Pins
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
     const markersGroup = markersLayerRef.current;
@@ -476,12 +463,10 @@ export default function TacticalMap({
 
   return (
     <div className="relative w-full h-full bg-[#060a12] overflow-hidden select-none">
-      {/* Main Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-      {/* FLOATING BOTTOM CONTROL DOCK (Clean, Unobtrusive, Palantir/Anduril Style) */}
+      {/* FLOATING BOTTOM CONTROL DOCK */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-wrap items-center gap-2 bg-[#090e17]/90 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-full shadow-2xl pointer-events-auto">
-        {/* Map Theme Pills */}
         <div className="flex items-center space-x-1 pr-2 border-r border-slate-800">
           <button
             onClick={() => setMapTheme("hybrid")}
@@ -491,7 +476,7 @@ export default function TacticalMap({
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            🛰️ Satélite Nítido
+            🛰️ Hybrid Satellite
           </button>
           <button
             onClick={() => setMapTheme("dark")}
@@ -501,7 +486,7 @@ export default function TacticalMap({
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            🌑 Radar Escuro
+            🌑 Dark Radar
           </button>
           <button
             onClick={() => setMapTheme("political")}
@@ -511,11 +496,10 @@ export default function TacticalMap({
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            🗺️ Mapa Político
+            🗺️ Political Map
           </button>
         </div>
 
-        {/* Layer Toggles */}
         <div className="flex items-center space-x-1.5 text-[11px]">
           <button
             onClick={() => setShowSouthAmerica(!showSouthAmerica)}
@@ -525,7 +509,7 @@ export default function TacticalMap({
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            🇧🇷 América do Sul
+            🇧🇷 South America
           </button>
           <button
             onClick={() => setShowUSStates(!showUSStates)}
@@ -535,7 +519,7 @@ export default function TacticalMap({
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            🇺🇸 50 Estados EUA
+            🇺🇸 US 50 States
           </button>
           <button
             onClick={() => setShowCartelRoutes(!showCartelRoutes)}
@@ -545,7 +529,7 @@ export default function TacticalMap({
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            🚢 Rotas Transnacionais
+            🚢 Transnational Routes
           </button>
           <button
             onClick={() => setShowRings(!showRings)}
@@ -555,7 +539,7 @@ export default function TacticalMap({
                 : "border-transparent text-slate-500 hover:text-slate-300"
             }`}
           >
-            🛡️ 3 Anéis C4ISR
+            🛡️ 3 C4ISR Rings
           </button>
         </div>
       </div>

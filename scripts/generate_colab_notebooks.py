@@ -476,3 +476,4 @@ print("✅ Exportado com sucesso: frontier_sat_yolov8.onnx (Classes: Clandestine
 
 if __name__ == "__main__":
     create_all_notebooks()
+
