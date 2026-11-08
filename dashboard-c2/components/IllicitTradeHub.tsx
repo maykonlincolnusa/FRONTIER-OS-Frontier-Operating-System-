@@ -740,6 +740,13 @@ export default function IllicitTradeHub({
             { id: 'MARITIME_CONTAINER', label: t.cargoCases },
             { id: 'HIGHWAY_FREIGHT', label: t.truckCases },
             { id: 'RIVERINE_COMMODITY', label: t.riverCases },
+            {
+              id: 'HUMAN_TRAFFICKING',
+              label:
+                lang === 'en'
+                  ? '🆘 Human Trafficking & Missing (FBI/Interpol)'
+                  : '🆘 Tráfico de Pessoas & Desaparecidos (FBI/Interpol)',
+            },
           ].map((cat) => (
             <button
               key={cat.id}

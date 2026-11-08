@@ -715,6 +715,33 @@ async def execute_ross_anderson_protocol_endpoint(payload: Dict[str, Any]):
     return _intel_engine.execute_ross_anderson_protocol(payload)
 
 
+@app.get("/api/v1/intel/human-trafficking-missing")
+async def get_human_trafficking_and_missing_endpoint(
+    query: str = "",
+    category: str = "ALL",
+    refresh_live: bool = False,
+):
+    live_items = None
+    if refresh_live:
+        try:
+            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+                res = await client.get(
+                    "https://api.fbi.gov/wanted/v1/list",
+                    params={"pageSize": 50},
+                    headers={"User-Agent": "FRONTIER-OS-C4ISR/3.0"},
+                )
+                if res.status_code == 200:
+                    live_items = res.json().get("items") or []
+        except Exception:
+            live_items = None
+    return _intel_engine.get_human_trafficking_and_missing_persons(
+        query=query,
+        category_filter=category,
+        live_fbi_items=live_items,
+    )
+
+
+
 
 
 

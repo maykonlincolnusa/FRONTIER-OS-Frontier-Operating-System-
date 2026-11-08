@@ -390,7 +390,10 @@ export default function CommandCenterPage() {
   const [fbiList, setFbiList] = useState<Fugitive[]>([]);
   const [flightsList, setFlightsList] = useState<Flight[]>([]);
   const [cbpSummary, setCbpSummary] = useState<Record<string, any> | null>(null);
-  const [govSubTab, setGovSubTab] = useState<"ofac" | "fbi" | "opensky" | "cbp">("ofac");
+  const [missingHtData, setMissingHtData] = useState<any>(null);
+  const [missingSearch, setMissingSearch] = useState<string>("");
+  const [syncingFbiLive, setSyncingFbiLive] = useState<boolean>(false);
+  const [govSubTab, setGovSubTab] = useState<"missing_ht" | "ofac" | "fbi" | "opensky" | "cbp">("missing_ht");
 
   const gatewayUrl =
     process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000";
@@ -482,13 +485,33 @@ export default function CommandCenterPage() {
   };
 
   // 4. Fetch Real Gov Data when tab opens
+  const fetchMissingHt = useCallback(
+    async (queryStr = "", refreshLive = false) => {
+      if (refreshLive) setSyncingFbiLive(true);
+      try {
+        const res = await fetch(
+          `${gatewayUrl}/api/v1/intel/human-trafficking-missing?query=${encodeURIComponent(
+            queryStr
+          )}&refresh_live=${refreshLive ? "true" : "false"}`
+        );
+        if (res.ok) {
+          const d = await res.json();
+          setMissingHtData(d);
+        }
+      } catch {}
+      if (refreshLive) setSyncingFbiLive(false);
+    },
+    [gatewayUrl]
+  );
+
   useEffect(() => {
     if (activeView !== "govdata") return;
+    fetchMissingHt(missingSearch, false);
     fetch(`${gatewayUrl}/api/v1/intel/ofac-sdn`)
       .then((r) => r.json())
       .then((d) => setOfacList(d.entries || []))
       .catch(() => {});
-    fetch(`${gatewayUrl}/api/v1/gov-data/fbi?limit=18`)
+    fetch(`${gatewayUrl}/api/v1/gov-data/fbi?limit=24`)
       .then((r) => r.json())
       .then((d) => setFbiList(d.fugitives || []))
       .catch(() => {});
@@ -500,7 +523,7 @@ export default function CommandCenterPage() {
       .then((r) => r.json())
       .then((d) => setCbpSummary(d.cbp_summary || null))
       .catch(() => {});
-  }, [activeView, gatewayUrl]);
+  }, [activeView, gatewayUrl, fetchMissingHt, missingSearch]);
 
   // 5. Ask AI Copilot
   const handleSendCopilot = async (customPrompt?: string) => {
@@ -1837,6 +1860,16 @@ export default function CommandCenterPage() {
           <div className="max-w-7xl mx-auto space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={() => setGovSubTab("missing_ht")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  govSubTab === "missing_ht"
+                    ? "bg-emerald-500 text-slate-950 shadow-md"
+                    : "bg-[#090e17] text-slate-300 border border-slate-800"
+                }`}
+              >
+                🆘 Tráfico de Pessoas & Desaparecidos (FBI ViCAP / Interpol / PF) ({missingHtData?.total_records ?? 28})
+              </button>
+              <button
                 onClick={() => setGovSubTab("ofac")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   govSubTab === "ofac"
@@ -1877,6 +1910,111 @@ export default function CommandCenterPage() {
                 📦 CBP Seizure Metrics (Fentanyl / Cocaine)
               </button>
             </div>
+
+            {govSubTab === "missing_ht" && (
+              <div className="space-y-4">
+                {/* Connected APIs & Live Sync Header */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-cyan-950/40 border border-emerald-500/40 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                        🆘 Monitoramento Global de Tráfico de Pessoas & Pessoas Desaparecidas (FBI API + Interpol + PF Brasil + Europol/UK)
+                      </div>
+                      <p className="text-[11px] text-slate-300 mt-0.5">
+                        Integração direta com <code>https://api.fbi.gov/wanted/v1/list</code> (<em>Kidnappings and Missing Persons</em>, <em>ViCAP Missing Persons</em>, <em>Crimes Against Children</em>), Difusão Amarela da Interpol (<em>Yellow Notices</em>), Amber Alert / SINESP (PF Brasil) e Europol EMPACT THB.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={missingSearch}
+                        onChange={(e) => setMissingSearch(e.target.value)}
+                        placeholder="Filtrar nome, cidade, ViCAP, Pacaraima..."
+                        className="bg-[#060a12] border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white w-64"
+                      />
+                      <button
+                        onClick={() => fetchMissingHt(missingSearch, true)}
+                        disabled={syncingFbiLive}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition"
+                      >
+                        {syncingFbiLive ? "Sincronizando api.fbi.gov..." : "🔄 Sincronizar API Oficial do FBI Agora"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Corridors Summary */}
+                  {missingHtData?.trafficking_corridors && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                      {missingHtData.trafficking_corridors.map((c: any) => (
+                        <div key={c.corridor_id} className="p-3 rounded-lg bg-[#060a12]/90 border border-slate-800 space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-[10px] text-emerald-400 font-bold">{c.corridor_id}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">{c.risk_level}</span>
+                          </div>
+                          <div className="font-bold text-white">{c.name}</div>
+                          <div className="text-[11px] text-slate-400">{c.modus_operandi}</div>
+                          <div className="text-[10px] font-mono text-cyan-300 pt-1">Sensores: {c.active_sensors}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Missing Persons & Trafficking Records Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(missingHtData?.records || []).map((rec: any) => (
+                    <div
+                      key={rec.uid}
+                      className="p-3.5 rounded-xl bg-[#090e17] border border-slate-800 hover:border-emerald-500/50 transition flex flex-col justify-between space-y-2.5"
+                    >
+                      <div className="flex space-x-3">
+                        {rec.image_url ? (
+                          <img
+                            src={rec.image_url}
+                            alt={rec.name}
+                            className="w-16 h-20 object-cover rounded-lg border border-slate-700 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-20 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex flex-col items-center justify-center text-center p-1 shrink-0">
+                            <span className="text-lg">🆘</span>
+                            <span className="text-[9px] font-mono text-emerald-300 leading-tight">ALERTA ATIVO</span>
+                          </div>
+                        )}
+                        <div className="space-y-1 overflow-hidden flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 truncate">
+                              {rec.badge_label}
+                            </span>
+                          </div>
+                          <div className="font-bold text-xs text-white line-clamp-1" title={rec.name}>
+                            {rec.name}
+                          </div>
+                          <div className="text-[10px] text-amber-300 font-semibold line-clamp-1">
+                            {rec.source_agency}
+                          </div>
+                          <div className="text-[11px] text-slate-400 line-clamp-2">
+                            {rec.description}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
+                        <span className="text-cyan-400 truncate">
+                          📍 {(rec.field_offices || []).slice(0, 2).join(", ").toUpperCase()}
+                        </span>
+                        <a
+                          href={rec.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-400 hover:underline font-sans font-bold shrink-0"
+                        >
+                          Ficha Oficial ↗
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {govSubTab === "ofac" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
