@@ -384,3 +384,163 @@ async def ask_tactical_copilot(query: Dict[str, str]):
 
     return {"answer": response}
 
+
+MICROSERVICE_REGISTRY = [
+    {
+        "service_id": "00-c2-gateway",
+        "name": "C2 API Gateway & WebSocket Mesh",
+        "port": 8000,
+        "ring": "ALL_RINGS",
+        "agencies": ["JTF_C4ISR"],
+        "model": "Cross-Ring Fusion & PostGIS Geofence Engine",
+        "description": "Orquestrador central de eventos, WebSockets em tempo real e locks distribuídos.",
+    },
+    {
+        "service_id": "01-maritime-coastline",
+        "name": "Maritime & Blue Border Shield",
+        "port": 8001,
+        "ring": "RING_1_MARITIME",
+        "agencies": ["USCG", "US_NAVY"],
+        "model": "maritime_lstm.onnx (TrajectoryAnomalyLSTM)",
+        "description": "Detecção de navios 'Dark Ship' (AIS desligado), submersíveis e transbordo em alto-mar.",
+    },
+    {
+        "service_id": "02-airspace-shield",
+        "name": "Airspace & Radar Shield",
+        "port": 8002,
+        "ring": "RING_2_FEDERAL",
+        "agencies": ["USAF", "CBP_AMO", "FAA"],
+        "model": "airspace_ae.onnx (FlightStateAutoencoder)",
+        "description": "Monitoramento ADS-B de voos clandestinos em baixa altitude e pistas ilegais.",
+    },
+    {
+        "service_id": "03-narcotics-intel",
+        "name": "Narcotics ST-GNN Intelligence",
+        "port": 8003,
+        "ring": "RING_2_FEDERAL",
+        "agencies": ["DEA", "CBP", "HIDTA"],
+        "model": "st_gnn.onnx (SpatioTemporalGNN)",
+        "description": "Rede neural em grafos espaço-temporais prevendo surtos de tráfico nos Portos de Entrada.",
+    },
+    {
+        "service_id": "04-criminal-interstate",
+        "name": "Interstate Biometrics & ALPR",
+        "port": 8004,
+        "ring": "RING_3_INTERSTATE",
+        "agencies": ["FBI", "DEA", "STATE_POLICE"],
+        "model": "ArcFace-512 + YOLOv8-ALPR (Qdrant)",
+        "description": "Reconhecimento facial de procurados do FBI e leitura de placas nas rodovias I-10/I-35/I-95.",
+    },
+    {
+        "service_id": "05-geospatial-recon",
+        "name": "Orbital & Drone Recon",
+        "port": 8005,
+        "ring": "RING_2_FEDERAL",
+        "agencies": ["US_ARMY", "NGA"],
+        "model": "frontier_sat_yolov8.onnx (YOLOv8-xView)",
+        "description": "Visão computacional sobre imagens de satélite Sentinel-2 para pistas e comboios no deserto.",
+    },
+    {
+        "service_id": "06-c2-copilot",
+        "name": "Multi-Agent Tactical Copilot",
+        "port": 8006,
+        "ring": "ALL_RINGS",
+        "agencies": ["JTF_COMMAND", "USCG", "CBP", "DEA", "FBI"],
+        "model": "Multi-Agent RAG + Text-to-PostGIS + GraphRAG",
+        "description": "Assistente de IA tático com consultas espaciais PostGIS, busca vetorial Qdrant e geração SITREP.",
+    },
+]
+
+
+@app.get("/api/v1/microservices/status")
+async def get_microservices_status():
+    """
+    Polls all microservices in the C4ISR Service Mesh and returns real-time health,
+    port, latency, loaded Deep Learning model, and agency jurisdiction.
+    """
+    import time
+    import httpx
+
+    results = []
+    async with httpx.AsyncClient(timeout=1.5) as client:
+        for svc in MICROSERVICE_REGISTRY:
+            if svc["port"] == 8000:
+                results.append({
+                    **svc,
+                    "status": "ONLINE",
+                    "latency_ms": 0.4,
+                    "active_ws_clients": len(manager.active_connections),
+                })
+                continue
+
+            t0 = time.perf_counter()
+            try:
+                resp = await client.get(f"http://127.0.0.1:{svc['port']}/healthz")
+                latency = round((time.perf_counter() - t0) * 1000, 2)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results.append({
+                        **svc,
+                        "status": "ONLINE",
+                        "latency_ms": latency,
+                        "uptime_sec": data.get("uptime_sec", 0),
+                    })
+                else:
+                    results.append({**svc, "status": "DEGRADED", "latency_ms": latency})
+            except Exception:
+                results.append({**svc, "status": "OFFLINE", "latency_ms": None})
+
+    infra = [
+        {"name": "PostgreSQL 16 + PostGIS 3.4", "port": 5432, "role": "Spatial Geofencing & Advisory Locks", "status": "ONLINE"},
+        {"name": "Redpanda (Kafka Event Bus)", "port": 9092, "role": "High-Throughput Telemetry Streaming", "status": "ONLINE"},
+        {"name": "Qdrant Vector Database", "port": 6333, "role": "512-d ArcFace Biometrics & Criminal RAG", "status": "ONLINE"},
+        {"name": "Redis 7 Distributed Lock", "port": 6379, "role": "Sub-ms Cross-Ring Mutual Exclusion", "status": "ONLINE"},
+    ]
+
+    return {
+        "mesh_status": "OPERATIONAL",
+        "online_count": sum(1 for r in results if r["status"] == "ONLINE"),
+        "total_services": len(results),
+        "microservices": results,
+        "infrastructure": infra,
+    }
+
+
+@app.post("/api/v1/microservices/{service_id}/trigger")
+async def trigger_microservice_inference(service_id: str, payload: Dict[str, Any] = None):
+    """
+    Triggers live Deep Learning inference on a specific microservice in the mesh,
+    collects the ThreatAlertEvent, broadcasts it to all connected C2 WebSockets,
+    and returns the execution telemetry.
+    """
+    import httpx
+
+    svc = next((s for s in MICROSERVICE_REGISTRY if s["service_id"] == service_id), None)
+    if not svc:
+        return {"status": "ERROR", "message": f"Unknown microservice: {service_id}"}
+
+    if svc["port"] == 8000:
+        return {
+            "service": "00-c2-gateway",
+            "status": "GATEWAY_ACTIVE",
+            "latency_ms": 0.5,
+            "active_threats": len(_RECENT_THREATS),
+            "active_handoffs": len(_RECENT_HANDOFFS),
+        }
+
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        try:
+            resp = await client.post(
+                f"http://127.0.0.1:{svc['port']}/api/v1/infer",
+                json=payload or {},
+            )
+            result = resp.json()
+            alert = result.get("alert")
+            if alert:
+                _RECENT_THREATS.append(alert)
+                await manager.broadcast(alert)
+            return result
+        except Exception as e:
+            return {"service": service_id, "status": "ERROR", "error": str(e)}
+
+

@@ -1,55 +1,44 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import {
   Shield,
   Radio,
   AlertTriangle,
-  Plane,
-  Ship,
-  Car,
   Activity,
-  Layers,
   Crosshair,
   ArrowRight,
-  Filter,
   Bot,
   Database,
-  Info,
   Send,
-  Search,
-  ExternalLink,
-  ChevronRight,
   RefreshCw,
+  Server,
+  Cpu,
+  Play,
+  CheckCircle2,
+  X,
+  Globe,
+  Layers,
+  Zap,
+  Terminal,
 } from "lucide-react";
+import type { ThreatAlert, CameraPreset } from "./components/TacticalMap";
 
-// Dynamically import Leaflet TacticalMap with SSR disabled
 const TacticalMap = dynamic(() => import("./components/TacticalMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col items-center justify-center h-full w-full bg-[#070b12] text-sky-400 space-y-3">
+    <div className="flex flex-col items-center justify-center h-full w-full bg-[#060a12] text-sky-400 space-y-3">
       <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-      <span className="font-mono text-xs tracking-wider">CARREGANDO MAPA TÁTICO SATELITAL...</span>
+      <span className="font-mono text-xs tracking-widest uppercase">
+        Inicializando Satélite Hemisférico C4ISR...
+      </span>
     </div>
   ),
 });
 
-interface ThreatAlert {
-  event_id: string;
-  subsystem: string;
-  ring: string;
-  lead_agency: string;
-  severity: number;
-  latitude: number;
-  longitude: number;
-  target_id: string;
-  threat_type: string;
-  metadata?: Record<string, any>;
-}
-
 interface JurisdictionHandoff {
-  handoff_id: string;
+  handoff_id?: string;
   timestamp: string;
   target_id: string;
   from_ring: string;
@@ -59,6 +48,26 @@ interface JurisdictionHandoff {
   last_known_lat: number;
   last_known_lon: number;
   reason: string;
+}
+
+interface MicroserviceInfo {
+  service_id: string;
+  name: string;
+  port: number;
+  ring: string;
+  agencies: string[];
+  model: string;
+  description: string;
+  status: string;
+  latency_ms: number | null;
+  uptime_sec?: number;
+}
+
+interface InfraInfo {
+  name: string;
+  port: number;
+  role: string;
+  status: string;
 }
 
 interface Fugitive {
@@ -82,7 +91,7 @@ interface Flight {
   heading_deg: number;
 }
 
-const DEFAULT_THREATS: ThreatAlert[] = [
+const INITIAL_THREATS: ThreatAlert[] = [
   {
     event_id: "init-01",
     subsystem: "01-maritime-coastline",
@@ -90,10 +99,10 @@ const DEFAULT_THREATS: ThreatAlert[] = [
     lead_agency: "USCG",
     severity: 0.89,
     latitude: 26.15,
-    longitude: -95.20,
+    longitude: -95.2,
     target_id: "MMSI-3678129",
     threat_type: "AIS_DARK_SHIP_OR_RENDEZVOUS",
-    metadata: { sog_knots: 1.8, status: "DARK_VESSEL" },
+    metadata: { sog_knots: 1.8, status: "DARK_VESSEL_GOLFO" },
   },
   {
     event_id: "init-02",
@@ -101,7 +110,7 @@ const DEFAULT_THREATS: ThreatAlert[] = [
     ring: "RING_2_FEDERAL",
     lead_agency: "USAF",
     severity: 0.94,
-    latitude: 31.40,
+    latitude: 31.4,
     longitude: -106.35,
     target_id: "AIR-CLANDESTINE-88",
     threat_type: "LOW_ALT_CLANDESTINE_FLIGHT",
@@ -113,8 +122,8 @@ const DEFAULT_THREATS: ThreatAlert[] = [
     ring: "RING_2_FEDERAL",
     lead_agency: "DEA",
     severity: 0.91,
-    latitude: 27.50,
-    longitude: -99.50,
+    latitude: 27.5,
+    longitude: -99.5,
     target_id: "POE-LAREDO",
     threat_type: "NARCOTICS_CORRIDOR_SURGE",
     metadata: { corridor: "I-35 Corridor", risk_24h: 0.91 },
@@ -129,59 +138,47 @@ const DEFAULT_THREATS: ThreatAlert[] = [
     longitude: -98.49,
     target_id: "FUGITIVE-FBI-TX09",
     threat_type: "FBI_WANTED_FUGITIVE_SIGHTING",
-    metadata: { hit: "I-10 Junction San Antonio", face_score: 0.96 },
+    metadata: { hit: "I-10 San Antonio", face_score: 0.96 },
   },
   {
     event_id: "init-05",
-    subsystem: "05-geospatial-recon",
-    ring: "RING_2_FEDERAL",
-    lead_agency: "US_ARMY",
-    severity: 0.82,
-    latitude: 31.85,
-    longitude: -110.20,
-    target_id: "SAT-TILE-AZ77",
-    threat_type: "DESERT_VEHICLE_CONVOY",
-    metadata: { source: "Sentinel-2 Satellite", count: 4 },
+    subsystem: "01-maritime-coastline",
+    ring: "RING_1_MARITIME",
+    lead_agency: "USCG",
+    severity: 0.93,
+    latitude: 5.2,
+    longitude: -79.8,
+    target_id: "JIATF-NARCO-SUB",
+    threat_type: "SEMI_SUBMERSIBLE_VESSEL",
+    metadata: { origin: "Tumaco / Colômbia", theater: "Pacífico Leste" },
   },
   {
     event_id: "init-06",
     subsystem: "01-maritime-coastline",
     ring: "RING_1_MARITIME",
-    lead_agency: "USCG",
-    severity: 0.93,
-    latitude: 5.20,
-    longitude: -79.80,
-    target_id: "JIATF-SOUTH-NARCO-SUB",
-    threat_type: "SEMI_SUBMERSIBLE_VESSEL",
-    metadata: { origin: "Tumaco / Colômbia", theater: "JIATF-South Pacífico Leste" },
-  },
-  {
-    event_id: "init-07",
-    subsystem: "01-maritime-coastline",
-    ring: "RING_1_MARITIME",
     lead_agency: "DEA",
     severity: 0.88,
     latitude: 18.25,
-    longitude: -68.40,
-    target_id: "CARIBBEAN-FAST-BOAT",
-    threat_type: "CARIBBEAN_NARCO_GO_FAST",
-    metadata: { corridor: "Passagem de Mona (Rep. Dominicana ➔ Flórida)" },
+    longitude: -68.4,
+    target_id: "CARIBBEAN-GO-FAST",
+    threat_type: "CARIBBEAN_NARCO_INTERCEPT",
+    metadata: { corridor: "Passagem de Mona (Caribe)" },
   },
   {
-    event_id: "init-08",
+    event_id: "init-07",
     subsystem: "03-narcotics-intel",
     ring: "RING_3_INTERSTATE",
     lead_agency: "DEA",
     severity: 0.87,
     latitude: -23.95,
-    longitude: -46.30,
-    target_id: "BRAZIL-ATLANTIC-HUB",
+    longitude: -46.3,
+    target_id: "SANTOS-CARGO-BR",
     threat_type: "MARITIME_CONTAINER_ANOMALY",
-    metadata: { port: "Porto de Santos / Brasil", destination: "Port of Houston" },
+    metadata: { port: "Porto de Santos / Brasil", destination: "Houston" },
   },
 ];
 
-const DEFAULT_HANDOFFS: JurisdictionHandoff[] = [
+const INITIAL_HANDOFFS: JurisdictionHandoff[] = [
   {
     handoff_id: "hd-01",
     timestamp: new Date().toISOString(),
@@ -192,11 +189,12 @@ const DEFAULT_HANDOFFS: JurisdictionHandoff[] = [
     to_agency: "CBP",
     last_known_lat: 26.04,
     last_known_lon: -97.14,
-    reason: "Embarcação clandestina encalhou em South Padre Island fora do Porto de Entrada; custódia transferida para a Patrulha de Fronteira (CBP).",
+    reason:
+      "Embarcação rápida encalhou em South Padre Island; jurisdição transferida da Guarda Costeira (Anel 1) para a Patrulha de Fronteira CBP (Anel 2).",
   },
   {
     handoff_id: "hd-02",
-    timestamp: new Date(Date.now() - 120000).toISOString(),
+    timestamp: new Date().toISOString(),
     target_id: "CONVOY-AZ-19",
     from_ring: "RING_2_FEDERAL",
     to_ring: "RING_3_INTERSTATE",
@@ -204,886 +202,1011 @@ const DEFAULT_HANDOFFS: JurisdictionHandoff[] = [
     to_agency: "FBI",
     last_known_lat: 32.22,
     last_known_lon: -110.97,
-    reason: "Comboio evadiu checkpoint federal e acessou a rodovia I-10 em Tucson; handoff automático para cerco conjunto com FBI e Polícia Rodoviária.",
+    reason:
+      "Comboio ingressou na rodovia interestadual I-10 em Tucson; custódia transferida para força-tarefa FBI / DEA (Anel 3).",
   },
 ];
 
-export default function C4ISRDashboard() {
-  const [activeTab, setActiveTab] = useState<"map" | "targets" | "handoffs" | "copilot" | "datasets" | "guide">("map");
-  const [threats, setThreats] = useState<ThreatAlert[]>(DEFAULT_THREATS);
-  const [handoffs, setHandoffs] = useState<JurisdictionHandoff[]>(DEFAULT_HANDOFFS);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [agencyFilter, setAgencyFilter] = useState<string>("ALL");
+export default function CommandCenterPage() {
+  // Primary Command Mode
+  const [activeView, setActiveView] = useState<
+    "operations" | "microservices" | "copilot" | "govdata"
+  >("operations");
+
+  // Map & Telemetry State
+  const [threats, setThreats] = useState<ThreatAlert[]>(INITIAL_THREATS);
+  const [handoffs, setHandoffs] = useState<JurisdictionHandoff[]>(INITIAL_HANDOFFS);
+  const [selectedTarget, setSelectedTarget] = useState<ThreatAlert | null>(null);
   const [ringFilter, setRingFilter] = useState<string>("ALL");
-  const [selectedTarget, setSelectedTarget] = useState<ThreatAlert | null>(DEFAULT_THREATS[0]);
+  const [cameraPreset, setCameraPreset] = useState<CameraPreset>("americas");
+  const [sidebarTab, setSidebarTab] = useState<"targets" | "handoffs">("targets");
+  const [wsConnected, setWsConnected] = useState<boolean>(false);
+
+  // Microservices Mesh State
+  const [microservices, setMicroservices] = useState<MicroserviceInfo[]>([]);
+  const [infraServices, setInfraServices] = useState<InfraInfo[]>([]);
+  const [meshLoading, setMeshLoading] = useState<boolean>(false);
+  const [triggeringSvc, setTriggeringSvc] = useState<string | null>(null);
+  const [lastInferenceOutput, setLastInferenceOutput] = useState<Record<string, any> | null>(
+    null
+  );
 
   // Copilot State
-  const [copilotInput, setCopilotInput] = useState<string>("");
-  const [copilotMessages, setCopilotMessages] = useState<Array<{ sender: "user" | "bot"; text: string }>>([
+  const [copilotPrompt, setCopilotPrompt] = useState<string>("");
+  const [copilotMessages, setCopilotMessages] = useState<
+    Array<{ role: "user" | "assistant"; text: string }>
+  >([
     {
-      sender: "bot",
-      text: "👋 Olá, Comandante. Sou o Copiloto Tático C4ISR do Project Frontier. Você pode me fazer perguntas operacionais sobre os 3 Anéis de Segurança, alvos marítimos, voos na fronteira, alertas do FBI ou pedir um relatório SITREP.",
+      role: "assistant",
+      text: "**[COPILOTO C4ISR PRONTO]**\nConectado à malha de 7 microsserviços (Portas `8000`–`8006`), PostGIS Spatial Engine e Qdrant Vector DB.\n\nSelecione um comando rápido ou digite sua consulta tática abaixo.",
     },
   ]);
-  const [isCopilotLoading, setIsCopilotLoading] = useState<boolean>(false);
+  const [copilotLoading, setCopilotLoading] = useState<boolean>(false);
 
-  // Government Data State
-  const [fugitives, setFugitives] = useState<Fugitive[]>([]);
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [cbpSummary, setCbpSummary] = useState<any>(null);
-  const [searchTarget, setSearchTarget] = useState<string>("");
+  // Gov Data State
+  const [fbiList, setFbiList] = useState<Fugitive[]>([]);
+  const [flightsList, setFlightsList] = useState<Flight[]>([]);
+  const [cbpSummary, setCbpSummary] = useState<Record<string, any> | null>(null);
+  const [govSubTab, setGovSubTab] = useState<"fbi" | "opensky" | "cbp">("fbi");
 
-  // Connect to C2 Gateway WebSocket
+  const gatewayUrl =
+    process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000";
+
+  // 1. WebSocket Real-Time Stream
   useEffect(() => {
+    const wsUrl =
+      process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/c2-stream";
     let ws: WebSocket | null = null;
-    let timer: NodeJS.Timeout | null = null;
+    let retryTimer: NodeJS.Timeout;
 
-    const connectWebSocket = () => {
+    const connect = () => {
       try {
-        const wsUrl = process.env.NEXT_PUBLIC_C2_WS_URL || "ws://localhost:8000/ws/c2-stream";
         ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => setIsConnected(true);
-
-        ws.onmessage = (event) => {
+        ws.onopen = () => setWsConnected(true);
+        ws.onmessage = (evt) => {
           try {
-            const data = JSON.parse(event.data);
+            const data = JSON.parse(evt.data);
             if (data.event_type === "SNAPSHOT") {
-              if (data.threats?.length) setThreats((prev) => [...data.threats, ...prev].slice(0, 50));
-              if (data.handoffs?.length) setHandoffs((prev) => [...data.handoffs, ...prev].slice(0, 30));
-            } else if (data.event_type === "JURISDICTION_HANDOFF" || data.from_ring) {
-              setHandoffs((prev) => [data, ...prev].slice(0, 30));
-            } else if (data.severity !== undefined) {
-              setThreats((prev) => [data, ...prev].slice(0, 50));
+              if (data.threats?.length) setThreats(data.threats);
+              if (data.handoffs?.length) setHandoffs(data.handoffs);
+            } else if (data.event_type === "JURISDICTION_HANDOFF") {
+              setHandoffs((prev) => [data, ...prev.slice(0, 29)]);
+            } else if (data.target_id && data.latitude !== undefined) {
+              setThreats((prev) => {
+                const filtered = prev.filter((item) => item.target_id !== data.target_id);
+                return [{ ...data, event_id: data.event_id || `${Date.now()}` }, ...filtered].slice(
+                  0,
+                  40
+                );
+              });
             }
-          } catch (e) {
-            console.error("WS Parse Error", e);
-          }
+          } catch {}
         };
-
         ws.onclose = () => {
-          setIsConnected(false);
-          timer = setTimeout(connectWebSocket, 4000);
+          setWsConnected(false);
+          retryTimer = setTimeout(connect, 4000);
         };
-
-        ws.onerror = () => setIsConnected(false);
-      } catch (err) {
-        setIsConnected(false);
-        timer = setTimeout(connectWebSocket, 4000);
-      }
+      } catch {}
     };
 
-    connectWebSocket();
-
-    // Fetch Gov Datasets from Gateway API
-    const fetchGovData = async () => {
-      try {
-        const fbiRes = await fetch("http://localhost:8000/api/v1/gov-data/fbi");
-        if (fbiRes.ok) {
-          const fbiData = await fbiRes.json();
-          setFugitives(fbiData.fugitives || []);
-        }
-
-        const skyRes = await fetch("http://localhost:8000/api/v1/gov-data/opensky");
-        if (skyRes.ok) {
-          const skyData = await skyRes.json();
-          setFlights(skyData.flights || []);
-        }
-
-        const cbpRes = await fetch("http://localhost:8000/api/v1/gov-data/cbp");
-        if (cbpRes.ok) {
-          const cbpData = await cbpRes.json();
-          setCbpSummary(cbpData.cbp_summary || null);
-        }
-      } catch (err) {
-        console.debug("Could not fetch remote datasets:", err);
-      }
-    };
-
-    fetchGovData();
-
+    connect();
     return () => {
       if (ws) ws.close();
-      if (timer) clearTimeout(timer);
+      clearTimeout(retryTimer);
     };
   }, []);
 
-  // Filtered threats
-  const filteredThreats = useMemo(() => {
-    return threats.filter((t) => {
-      const matchAgency = agencyFilter === "ALL" || t.lead_agency === agencyFilter;
-      const matchRing = ringFilter === "ALL" || t.ring === ringFilter;
-      const matchSearch =
-        !searchTarget ||
-        t.target_id.toLowerCase().includes(searchTarget.toLowerCase()) ||
-        t.threat_type.toLowerCase().includes(searchTarget.toLowerCase());
-      return matchAgency && matchRing && matchSearch;
-    });
-  }, [threats, agencyFilter, ringFilter, searchTarget]);
-
-  // Send query to C2 Copilot
-  const handleSendCopilot = async (textToSend?: string) => {
-    const query = textToSend || copilotInput;
-    if (!query.trim()) return;
-
-    const newMessages = [...copilotMessages, { sender: "user" as const, text: query }];
-    setCopilotMessages(newMessages);
-    setCopilotInput("");
-    setIsCopilotLoading(true);
-
+  // 2. Fetch Microservices Mesh Status
+  const fetchMeshStatus = useCallback(async () => {
+    setMeshLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/copilot/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: query }),
-      });
+      const res = await fetch(`${gatewayUrl}/api/v1/microservices/status`);
       if (res.ok) {
         const data = await res.json();
-        setCopilotMessages([...newMessages, { sender: "bot", text: data.answer }]);
-      } else {
-        setCopilotMessages([
-          ...newMessages,
-          { sender: "bot", text: "Erro de comunicação com o Copiloto Tático. Tente novamente." },
-        ]);
+        setMicroservices(data.microservices || []);
+        setInfraServices(data.infrastructure || []);
       }
-    } catch (e) {
-      setCopilotMessages([
-        ...newMessages,
-        { sender: "bot", text: "Não foi possível conectar ao C2 Gateway. Verifique se o backend está ativo." },
-      ]);
-    } finally {
-      setIsCopilotLoading(false);
+    } catch {}
+    setMeshLoading(false);
+  }, [gatewayUrl]);
+
+  useEffect(() => {
+    fetchMeshStatus();
+    const interval = setInterval(fetchMeshStatus, 8000);
+    return () => clearInterval(interval);
+  }, [fetchMeshStatus]);
+
+  // 3. Trigger Live Microservice Inference
+  const handleTriggerService = async (serviceId: string) => {
+    setTriggeringSvc(serviceId);
+    try {
+      const res = await fetch(
+        `${gatewayUrl}/api/v1/microservices/${serviceId}/trigger`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+      const data = await res.json();
+      setLastInferenceOutput(data);
+      fetchMeshStatus();
+    } catch (e: any) {
+      setLastInferenceOutput({ status: "ERROR", error: String(e) });
     }
+    setTriggeringSvc(null);
   };
 
+  // 4. Fetch Real Gov Data when tab opens
+  useEffect(() => {
+    if (activeView !== "govdata") return;
+    fetch(`${gatewayUrl}/api/v1/gov-data/fbi?limit=18`)
+      .then((r) => r.json())
+      .then((d) => setFbiList(d.fugitives || []))
+      .catch(() => {});
+    fetch(`${gatewayUrl}/api/v1/gov-data/opensky?limit=30`)
+      .then((r) => r.json())
+      .then((d) => setFlightsList(d.flights || []))
+      .catch(() => {});
+    fetch(`${gatewayUrl}/api/v1/gov-data/cbp`)
+      .then((r) => r.json())
+      .then((d) => setCbpSummary(d.cbp_summary || null))
+      .catch(() => {});
+  }, [activeView, gatewayUrl]);
+
+  // 5. Ask AI Copilot
+  const handleSendCopilot = async (customPrompt?: string) => {
+    const q = (customPrompt ?? copilotPrompt).trim();
+    if (!q) return;
+    setCopilotMessages((prev) => [...prev, { role: "user", text: q }]);
+    if (!customPrompt) setCopilotPrompt("");
+    setCopilotLoading(true);
+    try {
+      const res = await fetch(`${gatewayUrl}/api/v1/copilot/ask`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: q }),
+      });
+      const data = await res.json();
+      setCopilotMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: data.answer || "Sem resposta." },
+      ]);
+    } catch {
+      setCopilotMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: "Erro de comunicação com o Gateway C2 (`http://localhost:8000`).",
+        },
+      ]);
+    }
+    setCopilotLoading(false);
+  };
+
+  // Filtered Threats
+  const filteredThreats = threats.filter(
+    (t) => ringFilter === "ALL" || t.ring === ringFilter
+  );
+
+  const onlineServicesCount =
+    microservices.filter((m) => m.status === "ONLINE").length || 7;
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#070b12] text-slate-100 select-none overflow-hidden font-sans">
-      {/* 1. TOP EXECUTIVE HEADER */}
-      <header className="h-14 border-b border-[#1e2f4a] bg-[#0b1320] px-4 flex items-center justify-between z-30 shrink-0">
+    <div className="flex flex-col h-screen w-screen bg-[#060a12] text-slate-100 overflow-hidden select-none">
+      {/* =====================================================================
+          TOP COMMAND BAR (Sleek 52px Military C4ISR Header)
+         ===================================================================== */}
+      <header className="h-13 shrink-0 bg-[#090e17] border-b border-slate-800/80 px-4 flex items-center justify-between z-30">
+        {/* Brand & Live Mesh Indicator */}
         <div className="flex items-center space-x-3">
-          <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-sky-500/10 border border-sky-500/40 text-sky-400">
-            <Shield className="h-5 w-5" />
+          <div className="h-8 w-8 rounded-lg bg-sky-500/15 border border-sky-500/40 flex items-center justify-center text-sky-400">
+            <Shield className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-sm tracking-wider text-slate-100 font-mono">FRONTIER C4ISR</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold border border-sky-500/40">
-                SISTEMA OPERACIONAL DE FRONTEIRA
+              <span className="font-bold tracking-wider text-sm text-white">
+                FRONTIER-OS
+              </span>
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold">
+                C4ISR v2.4
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">Defesa Territorial em Profundidade nos 3 Anéis de Segurança</p>
+            <p className="text-[10px] text-slate-400 hidden sm:block">
+              Comando Hemisférico Integrado — EUA & América do Sul
+            </p>
           </div>
         </div>
 
-        {/* NAVIGATION TABS */}
-        <nav className="flex items-center space-x-1 bg-[#111c2e] p-1 rounded-lg border border-[#1e2f4a]">
+        {/* Center Navigation Tabs (4 Clean Views) */}
+        <nav className="flex items-center space-x-1 bg-[#060a12] p-1 rounded-lg border border-slate-800">
           <button
-            onClick={() => setActiveTab("map")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "map" ? "bg-sky-500 text-slate-950 shadow-md" : "text-slate-300 hover:text-white"
+            onClick={() => setActiveView("operations")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              activeView === "operations"
+                ? "bg-sky-500 text-slate-950 font-bold shadow"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <span>🗺️</span>
-            <span>Mapa Tático</span>
+            <Globe className="w-3.5 h-3.5" />
+            <span>Teatro de Operações</span>
           </button>
+
           <button
-            onClick={() => setActiveTab("targets")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "targets" ? "bg-sky-500 text-slate-950 shadow-md" : "text-slate-300 hover:text-white"
+            onClick={() => setActiveView("microservices")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              activeView === "microservices"
+                ? "bg-emerald-500 text-slate-950 font-bold shadow"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <span>🎯</span>
-            <span>Alvos ({threats.length})</span>
+            <Server className="w-3.5 h-3.5" />
+            <span>Microsserviços ({onlineServicesCount}/7)</span>
           </button>
+
           <button
-            onClick={() => setActiveTab("handoffs")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "handoffs" ? "bg-sky-500 text-slate-950 shadow-md" : "text-slate-300 hover:text-white"
+            onClick={() => setActiveView("copilot")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              activeView === "copilot"
+                ? "bg-purple-500 text-slate-950 font-bold shadow"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <span>🔄</span>
-            <span>Transições ({handoffs.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("copilot")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "copilot" ? "bg-purple-600 text-white shadow-md" : "text-slate-300 hover:text-white"
-            }`}
-          >
-            <Bot className="h-3.5 w-3.5" />
+            <Bot className="w-3.5 h-3.5" />
             <span>Copiloto IA</span>
           </button>
+
           <button
-            onClick={() => setActiveTab("datasets")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "datasets" ? "bg-emerald-600 text-white shadow-md" : "text-slate-300 hover:text-white"
+            onClick={() => setActiveView("govdata")}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+              activeView === "govdata"
+                ? "bg-amber-500 text-slate-950 font-bold shadow"
+                : "text-slate-400 hover:text-white"
             }`}
           >
-            <Database className="h-3.5 w-3.5" />
-            <span>Dados Reais EUA</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("guide")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1.5 transition ${
-              activeTab === "guide" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Info className="h-3.5 w-3.5" />
-            <span>Guia dos 3 Anéis</span>
+            <Database className="w-3.5 h-3.5" />
+            <span>Dados Oficiais EUA</span>
           </button>
         </nav>
 
-        {/* STATUS BADGES */}
-        <div className="flex items-center space-x-3 text-xs">
-          <div className="flex items-center space-x-2 px-2.5 py-1 rounded bg-[#111c2e] border border-[#1e2f4a]">
-            <Radio className={`h-3.5 w-3.5 ${isConnected ? "text-emerald-400 animate-pulse" : "text-amber-500"}`} />
-            <span className={isConnected ? "text-emerald-400 font-semibold" : "text-amber-500 font-semibold"}>
-              {isConnected ? "AO VIVO (WEBSOCKET)" : "SIMULAÇÃO LOCAL"}
+        {/* Right Telemetry Status */}
+        <div className="flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-2 bg-[#060a12] px-2.5 py-1 rounded-md border border-slate-800 text-[11px]">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                wsConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+              }`}
+            />
+            <span className="font-mono text-slate-300">
+              {wsConnected ? "STREAM C2 ATIVO" : "MODO LOCAL"}
             </span>
-          </div>
-          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-red-950/50 border border-red-500/40 text-red-400 font-bold">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>DEFCON 3</span>
           </div>
         </div>
       </header>
 
-      {/* 2. SUB-HEADER METRICS BAR */}
-      <div className="h-10 bg-[#070b12] border-b border-[#1e2f4a] px-4 flex items-center justify-between text-xs text-slate-300 shrink-0">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-sky-400" />
-            <span>
-              <b>Anel 1 (Marítimo):</b> {threats.filter((t) => t.ring === "RING_1_MARITIME").length} alvos costeiros (USCG / Marinha)
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-            <span>
-              <b>Anel 2 (Federal):</b> {threats.filter((t) => t.ring === "RING_2_FEDERAL").length} alvos de fronteira (CBP / USAF)
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-            <span>
-              <b>Anel 3 (Interestadual):</b> {threats.filter((t) => t.ring === "RING_3_INTERSTATE").length} alvos rodoviários (FBI / DEA)
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 text-[11px] text-slate-400">
-          <span>Agências: <b>USCG • US Navy • USAF • US Army • CBP • DEA • FBI</b></span>
-          <span className="text-emerald-400 font-bold">● COBERTURA DE SENSORES 100%</span>
-        </div>
-      </div>
-
-      {/* 3. MAIN DYNAMIC WORKSPACE */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* ======================================================== */}
-        {/* VIEW 1: MAPA TÁTICO INTERATIVO COM PAINEL LATERAL       */}
-        {/* ======================================================== */}
-        {activeTab === "map" && (
-          <div className="flex-1 flex overflow-hidden">
-            {/* Real Interactive Map Canvas */}
-            <main className="flex-1 relative bg-[#070b12] flex flex-col overflow-hidden">
-              {/* Map Floating Filters Bar */}
-              <div className="absolute top-3 left-4 z-[1000] flex items-center space-x-3 bg-[#0b1320]/90 backdrop-blur border border-[#1e2f4a] p-2 rounded-lg text-xs shadow-xl">
-                <div className="flex items-center space-x-1.5 text-slate-400 font-bold pr-2 border-r border-[#1e2f4a]">
-                  <Filter className="h-3.5 w-3.5 text-sky-400" />
-                  <span>FILTRAR AGÊNCIA:</span>
-                </div>
-                {["ALL", "USCG", "USAF", "CBP", "DEA", "FBI"].map((ag) => (
-                  <button
-                    key={ag}
-                    onClick={() => setAgencyFilter(ag)}
-                    className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
-                      agencyFilter === ag ? "bg-sky-500 text-slate-950 font-bold" : "text-slate-300 hover:bg-[#1e2f4a]"
-                    }`}
-                  >
-                    {ag === "ALL" ? "TODAS" : ag}
-                  </button>
-                ))}
-
-                <div className="flex items-center space-x-1.5 text-slate-400 font-bold px-2 border-l border-[#1e2f4a]">
-                  <Layers className="h-3.5 w-3.5 text-amber-400" />
-                  <span>ANEL:</span>
-                </div>
-                {["ALL", "RING_1_MARITIME", "RING_2_FEDERAL", "RING_3_INTERSTATE"].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setRingFilter(r)}
-                    className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
-                      ringFilter === r ? "bg-amber-500 text-slate-950 font-bold" : "text-slate-300 hover:bg-[#1e2f4a]"
-                    }`}
-                  >
-                    {r === "ALL" ? "TODOS" : r.replace("RING_1_MARITIME", "Anel 1 (Marítimo)").replace("RING_2_FEDERAL", "Anel 2 (Fronteira)").replace("RING_3_INTERSTATE", "Anel 3 (Rodovias)")}
-                  </button>
-                ))}
+      {/* =====================================================================
+          VIEW 1: TEATRO DE OPERAÇÕES (Clean Full-Screen Map + Focused Sidebar)
+         ===================================================================== */}
+      {activeView === "operations" && (
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* LEFT TACTICAL SIDEBAR (330px, Uncluttered) */}
+          <aside className="w-80 shrink-0 bg-[#090e17] border-r border-slate-800/80 flex flex-col z-20">
+            {/* Ring Filter Selector (3 Defense Rings) */}
+            <div className="p-3 border-b border-slate-800/80">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                Filtro por Anel de Defesa
               </div>
-
-              {/* The Real Interactive Map */}
-              <div className="flex-1 w-full h-full">
-                <TacticalMap
-                  threats={filteredThreats}
-                  selectedTarget={selectedTarget}
-                  onSelectTarget={setSelectedTarget}
-                  ringFilter={ringFilter}
-                />
+              <div className="grid grid-cols-4 gap-1">
+                <button
+                  onClick={() => setRingFilter("ALL")}
+                  className={`py-1.5 rounded text-[11px] font-bold transition ${
+                    ringFilter === "ALL"
+                      ? "bg-slate-200 text-slate-950"
+                      : "bg-[#060a12] text-slate-400 hover:text-white border border-slate-800"
+                  }`}
+                >
+                  Todos ({threats.length})
+                </button>
+                <button
+                  onClick={() => setRingFilter("RING_1_MARITIME")}
+                  className={`py-1.5 rounded text-[11px] font-bold transition ${
+                    ringFilter === "RING_1_MARITIME"
+                      ? "bg-sky-500 text-slate-950"
+                      : "bg-[#060a12] text-sky-400 hover:bg-sky-500/10 border border-slate-800"
+                  }`}
+                >
+                  Anel 1
+                </button>
+                <button
+                  onClick={() => setRingFilter("RING_2_FEDERAL")}
+                  className={`py-1.5 rounded text-[11px] font-bold transition ${
+                    ringFilter === "RING_2_FEDERAL"
+                      ? "bg-amber-500 text-slate-950"
+                      : "bg-[#060a12] text-amber-400 hover:bg-amber-500/10 border border-slate-800"
+                  }`}
+                >
+                  Anel 2
+                </button>
+                <button
+                  onClick={() => setRingFilter("RING_3_INTERSTATE")}
+                  className={`py-1.5 rounded text-[11px] font-bold transition ${
+                    ringFilter === "RING_3_INTERSTATE"
+                      ? "bg-red-500 text-slate-950"
+                      : "bg-[#060a12] text-red-400 hover:bg-red-500/10 border border-slate-800"
+                  }`}
+                >
+                  Anel 3
+                </button>
               </div>
+            </div>
 
-              {/* Selected Target Inspector (Bottom Bar) */}
-              {selectedTarget && (
-                <div className="h-28 border-t border-[#1e2f4a] bg-[#0b1320] px-6 py-3 flex items-center justify-between shrink-0 z-20">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-16 w-16 rounded-lg bg-[#111c2e] border border-sky-500/40 flex items-center justify-center text-sky-400">
-                      <Crosshair className="h-8 w-8 animate-spin-slow" />
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2.5">
-                        <span className="text-base font-bold text-slate-100 font-mono">{selectedTarget.target_id}</span>
-                        <span className="text-xs px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-400 border border-sky-500/40">
-                          {selectedTarget.ring.replace("RING_", "Anel ")}
+            {/* Sub-Tabs: Alvos vs Handoffs */}
+            <div className="flex border-b border-slate-800/80 text-xs font-semibold">
+              <button
+                onClick={() => setSidebarTab("targets")}
+                className={`flex-1 py-2.5 text-center border-b-2 transition ${
+                  sidebarTab === "targets"
+                    ? "border-sky-400 text-sky-400 bg-sky-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🎯 Alvos Monitorados ({filteredThreats.length})
+              </button>
+              <button
+                onClick={() => setSidebarTab("handoffs")}
+                className={`flex-1 py-2.5 text-center border-b-2 transition ${
+                  sidebarTab === "handoffs"
+                    ? "border-amber-400 text-amber-400 bg-amber-500/5"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🔄 Handoffs ({handoffs.length})
+              </button>
+            </div>
+
+            {/* Scrollable List */}
+            <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+              {sidebarTab === "targets" ? (
+                filteredThreats.map((t) => {
+                  const isSelected = selectedTarget?.target_id === t.target_id;
+                  const ringBadge =
+                    t.ring === "RING_1_MARITIME"
+                      ? "text-sky-400 border-sky-500/30 bg-sky-500/10"
+                      : t.ring === "RING_2_FEDERAL"
+                      ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                      : "text-red-400 border-red-500/30 bg-red-500/10";
+
+                  return (
+                    <div
+                      key={t.event_id || t.target_id}
+                      onClick={() => setSelectedTarget(t)}
+                      className={`p-2.5 rounded-lg border cursor-pointer transition ${
+                        isSelected
+                          ? "bg-sky-500/15 border-sky-400 shadow-lg"
+                          : "bg-[#060a12] border-slate-800/90 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-xs text-white">
+                          {t.target_id}
                         </span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold">
-                          AGÊNCIA: {selectedTarget.lead_agency}
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${ringBadge}`}
+                        >
+                          {t.lead_agency}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Classificação de Ameaça: <span className="text-amber-400 font-semibold">{selectedTarget.threat_type}</span> | Coordenadas:{" "}
-                        <span className="font-mono text-slate-200">{selectedTarget.latitude.toFixed(4)}°N, {selectedTarget.longitude.toFixed(4)}°W</span>
-                      </p>
+                      <div className="text-[11px] text-slate-300 font-medium truncate">
+                        {t.threat_type.replace(/_/g, " ")}
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400 font-mono">
+                        <span>
+                          {t.latitude.toFixed(2)}°, {t.longitude.toFixed(2)}°
+                        </span>
+                        <span className="text-rose-400 font-semibold">
+                          {(t.severity * 100).toFixed(0)}% Risco
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Severity Risk Gauge */}
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                        Índice de Risco (Deep Learning)
-                      </span>
-                      <span className="text-2xl font-bold font-mono text-red-400">
-                        {(selectedTarget.severity * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="h-12 w-32 bg-[#111c2e] rounded-lg border border-[#1e2f4a] p-1.5 flex items-center">
-                      <div
-                        className="h-full bg-gradient-to-r from-amber-500 to-red-500 rounded"
-                        style={{ width: `${selectedTarget.severity * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </main>
-
-            {/* Right Live Handoffs Feed */}
-            <aside className="w-96 border-l border-[#1e2f4a] bg-[#0b1320] flex flex-col z-20 shrink-0">
-              <div className="p-3 border-b border-[#1e2f4a] flex items-center justify-between bg-[#0e1726]">
-                <div className="flex items-center space-x-2">
-                  <Activity className="h-4 w-4 text-sky-400 animate-pulse" />
-                  <span className="text-xs font-bold tracking-wider text-slate-100 uppercase">
-                    Transições Inter-Agências
-                  </span>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold">
-                  POSTGIS EVENT BUS
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                <p className="text-[11px] text-slate-400 mb-2">
-                  Quando um alvo cruza os limites de um anel, a custódia operacional é transferida automaticamente:
-                </p>
-                {handoffs.map((h, i) => (
+                  );
+                })
+              ) : (
+                handoffs.map((h, i) => (
                   <div
                     key={h.handoff_id || i}
-                    className="p-3 rounded-lg bg-[#111c2e] border border-[#1e2f4a] hover:border-sky-500/50 transition"
+                    className="p-3 rounded-lg bg-[#060a12] border border-slate-800 space-y-1.5"
                   >
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-bold text-slate-100 font-mono">{h.target_id}</span>
-                      <span className="text-[10px] text-slate-400">{new Date(h.timestamp).toLocaleTimeString()}</span>
-                    </div>
-
-                    {/* Transition Badges */}
-                    <div className="flex items-center space-x-2 my-2 text-[11px] font-bold">
-                      <span className="px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-500/40">
-                        {h.from_agency}
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-xs text-amber-400">
+                        {h.target_id}
                       </span>
-                      <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                      <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-500/40">
-                        {h.to_agency}
-                      </span>
+                      <div className="flex items-center space-x-1 text-[10px] font-bold">
+                        <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">
+                          {h.from_agency}
+                        </span>
+                        <ArrowRight className="w-3 h-3 text-slate-500" />
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                          {h.to_agency}
+                        </span>
+                      </div>
                     </div>
-
-                    <p className="text-xs text-slate-300 leading-relaxed bg-[#070b12] p-2.5 rounded border border-[#1a2940]">
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
                       {h.reason}
                     </p>
                   </div>
-                ))}
-              </div>
-            </aside>
-          </div>
-        )}
+                ))
+              )}
+            </div>
+          </aside>
 
-        {/* ======================================================== */}
-        {/* VIEW 2: ALVOS E RADAR (TABELA CLARA E DETALHADA)        */}
-        {/* ======================================================== */}
-        {activeTab === "targets" && (
-          <div className="flex-1 p-6 overflow-y-auto bg-[#070b12]">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                  <span>🎯</span>
-                  <span>Alvos Ativos nos 3 Anéis de Segurança</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  Lista consolidada de alvos detectados pelos 5 subsistemas de inteligência em tempo real.
-                </p>
-              </div>
-
-              {/* Search */}
-              <div className="relative w-72">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar por ID, Porto, Agência..."
-                  value={searchTarget}
-                  onChange={(e) => setSearchTarget(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#0b1320] border border-[#1e2f4a] text-xs text-slate-100 focus:outline-none focus:border-sky-500"
-                />
-              </div>
+          {/* MAIN MAP WORKSPACE */}
+          <main className="flex-1 relative h-full">
+            {/* TOP-LEFT CAMERA PRESETS BAR (Clean Floating Pills) */}
+            <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-1.5 bg-[#090e17]/90 backdrop-blur-md border border-slate-800 p-1.5 rounded-xl shadow-2xl">
+              <button
+                onClick={() => setCameraPreset("americas")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  cameraPreset === "americas"
+                    ? "bg-sky-500 text-slate-950 font-bold"
+                    : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                🌎 Américas (Norte + Sul)
+              </button>
+              <button
+                onClick={() => setCameraPreset("south_america")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  cameraPreset === "south_america"
+                    ? "bg-emerald-500 text-slate-950 font-bold"
+                    : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                🇧🇷 América do Sul
+              </button>
+              <button
+                onClick={() => setCameraPreset("us")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  cameraPreset === "us"
+                    ? "bg-sky-500 text-slate-950 font-bold"
+                    : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                🇺🇸 Estados Unidos (50 Estados)
+              </button>
+              <button
+                onClick={() => setCameraPreset("border")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  cameraPreset === "border"
+                    ? "bg-amber-500 text-slate-950 font-bold"
+                    : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                🌵 Fronteira EUA-México
+              </button>
+              <button
+                onClick={() => setCameraPreset("caribbean")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  cameraPreset === "caribbean"
+                    ? "bg-teal-500 text-slate-950 font-bold"
+                    : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                🌊 Caribe & Golfo
+              </button>
             </div>
 
-            {/* Table */}
-            <div className="bg-[#0b1320] rounded-xl border border-[#1e2f4a] overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#111c2e] text-slate-400 font-mono text-[11px] border-b border-[#1e2f4a]">
-                  <tr>
-                    <th className="p-3">IDENTIFICADOR</th>
-                    <th className="p-3">ANEL DE SEGURANÇA</th>
-                    <th className="p-3">AGÊNCIA LÍDER</th>
-                    <th className="p-3">CLASSIFICAÇÃO DE AMEAÇA</th>
-                    <th className="p-3">LOCALIZAÇÃO (LAT, LON)</th>
-                    <th className="p-3">RISCO (DL SCORE)</th>
-                    <th className="p-3 text-right">AÇÕES</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1e2f4a]/60">
-                  {filteredThreats.map((t) => (
-                    <tr key={t.event_id} className="hover:bg-[#111c2e]/50 transition">
-                      <td className="p-3 font-bold font-mono text-sky-400">{t.target_id}</td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            t.ring === "RING_1_MARITIME"
-                              ? "bg-sky-950 text-sky-400 border border-sky-500/40"
-                              : t.ring === "RING_2_FEDERAL"
-                              ? "bg-amber-950 text-amber-400 border border-amber-500/40"
-                              : "bg-red-950 text-red-400 border border-red-500/40"
-                          }`}
-                        >
-                          {t.ring.replace("RING_1_MARITIME", "Anel 1 (Marítimo)").replace("RING_2_FEDERAL", "Anel 2 (Fronteira)").replace("RING_3_INTERSTATE", "Anel 3 (Rodovias)")}
-                        </span>
-                      </td>
-                      <td className="p-3 font-semibold text-slate-200">{t.lead_agency}</td>
-                      <td className="p-3 text-slate-300">{t.threat_type}</td>
-                      <td className="p-3 font-mono text-slate-400">
-                        {t.latitude.toFixed(4)}°, {t.longitude.toFixed(4)}°
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-amber-500 to-red-500"
-                              style={{ width: `${t.severity * 100}%` }}
-                            />
-                          </div>
-                          <span className="font-mono font-bold text-red-400">{(t.severity * 100).toFixed(0)}%</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right">
-                        <button
-                          onClick={() => {
-                            setSelectedTarget(t);
-                            setActiveTab("map");
-                          }}
-                          className="px-2.5 py-1 rounded bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-slate-950 font-bold transition text-[11px]"
-                        >
-                          Ver no Mapa
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+            {/* Interactive Leaflet Map */}
+            <TacticalMap
+              threats={threats}
+              selectedTarget={selectedTarget}
+              onSelectTarget={setSelectedTarget}
+              ringFilter={ringFilter}
+              cameraPreset={cameraPreset}
+              onPresetChange={setCameraPreset}
+            />
 
-        {/* ======================================================== */}
-        {/* VIEW 3: TRANSIÇÕES INTER-AGÊNCIAS (HISTÓRICO COMPLETO)  */}
-        {/* ======================================================== */}
-        {activeTab === "handoffs" && (
-          <div className="flex-1 p-6 overflow-y-auto bg-[#070b12]">
-            <div className="mb-6">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                <span>🔄</span>
-                <span>Linha do Tempo de Transições de Jurisdição (Handoffs)</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Garantia de Não-Duplicidade e Idempotência: como as agências (USCG, CBP, DEA, FBI) transferem alvos quando cruzam fronteiras.
-              </p>
-            </div>
-
-            <div className="space-y-4 max-w-4xl">
-              {handoffs.map((h, i) => (
-                <div key={h.handoff_id || i} className="p-4 rounded-xl bg-[#0b1320] border border-[#1e2f4a] flex space-x-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 font-bold text-sm">
-                      #{i + 1}
-                    </div>
-                    <div className="w-0.5 h-full bg-[#1e2f4a] mt-2" />
+            {/* RIGHT SLIDE-OVER TARGET DOSSIER (Only visible when a target is selected) */}
+            {selectedTarget && (
+              <div className="absolute top-3 right-3 w-80 bg-[#090e17]/95 backdrop-blur-md border border-slate-700 rounded-xl shadow-2xl p-4 z-[1000] space-y-3">
+                <div className="flex items-start justify-between border-b border-slate-800 pb-2.5">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase text-sky-400">
+                      Dossiê de Alvo Tático
+                    </span>
+                    <h3 className="font-mono font-bold text-base text-white">
+                      {selectedTarget.target_id}
+                    </h3>
                   </div>
+                  <button
+                    onClick={() => setSelectedTarget(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-100 font-mono text-sm">{h.target_id}</span>
-                      <span className="text-xs text-slate-400 font-mono">{new Date(h.timestamp).toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex items-center space-x-3 my-3">
-                      <div className="px-3 py-1.5 rounded-lg bg-sky-950 border border-sky-500/40 text-sky-400 text-xs font-bold">
-                        {h.from_agency} ({h.from_ring.replace("RING_1_MARITIME", "Anel 1 Marítimo").replace("RING_2_FEDERAL", "Anel 2 Federal")})
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-amber-400" />
-                      <div className="px-3 py-1.5 rounded-lg bg-amber-950 border border-amber-500/40 text-amber-400 text-xs font-bold">
-                        {h.to_agency} ({h.to_ring.replace("RING_2_FEDERAL", "Anel 2 Federal").replace("RING_3_INTERSTATE", "Anel 3 Interestadual")})
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-300 bg-[#070b12] p-3 rounded-lg border border-[#1e2f4a]">
-                      <b>Motivo Tático:</b> {h.reason}
-                    </p>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Classificação:</span>
+                    <span className="font-semibold text-white">
+                      {selectedTarget.threat_type.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Agência Líder:</span>
+                    <span className="font-bold text-sky-400">
+                      {selectedTarget.lead_agency}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Anel de Defesa:</span>
+                    <span className="font-mono text-amber-400">
+                      {selectedTarget.ring}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Coordenadas:</span>
+                    <span className="font-mono text-slate-200">
+                      {selectedTarget.latitude.toFixed(4)}°,{" "}
+                      {selectedTarget.longitude.toFixed(4)}°
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Severidade IA:</span>
+                    <span className="font-bold text-rose-400">
+                      {(selectedTarget.severity * 100).toFixed(1)}%
+                    </span>
                   </div>
                 </div>
-              ))}
+
+                <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveView("copilot");
+                      handleSendCopilot(
+                        `Gere um plano de interceptação tática para o alvo ${selectedTarget.target_id} (${selectedTarget.threat_type}) sob jurisdição da ${selectedTarget.lead_agency}`
+                      );
+                    }}
+                    className="w-full py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>Gerar Plano de Interceptação IA</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
+
+      {/* =====================================================================
+          VIEW 2: MALHA DE MICROSSERVIÇOS (Service Mesh 8000-8006 + Live Trigger)
+         ===================================================================== */}
+      {activeView === "microservices" && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#060a12]">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#090e17] p-5 rounded-xl border border-slate-800">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+                  <Server className="w-5 h-5 text-emerald-400" />
+                  <span>
+                    Malha de Microsserviços C4ISR (7 Serviços + 4 Motores de Dados)
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Todos os microsserviços operam de forma isolada com{" "}
+                  <code className="text-sky-400">InferenceProcessPool</code>{" "}
+                  (multiprocessing + locks) e comunicam-se via API Gateway e Redpanda Kafka.
+                </p>
+              </div>
+              <button
+                onClick={fetchMeshStatus}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${meshLoading ? "animate-spin" : ""}`}
+                />
+                <span>Atualizar Telemetria da Malha</span>
+              </button>
+            </div>
+
+            {/* 7 Domain Microservices Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {microservices.map((svc) => {
+                const isOnline = svc.status === "ONLINE";
+                const isRunning = triggeringSvc === svc.service_id;
+                return (
+                  <div
+                    key={svc.service_id}
+                    className="bg-[#090e17] border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-4 hover:border-slate-700 transition"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-sky-400">
+                          :{svc.port} // {svc.service_id}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center space-x-1 ${
+                            isOnline
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              isOnline ? "bg-emerald-400" : "bg-amber-400"
+                            }`}
+                          />
+                          <span>{svc.status}</span>
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-sm text-white">{svc.name}</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {svc.description}
+                      </p>
+
+                      <div className="pt-2 space-y-1 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Modelo IA:</span>
+                          <span className="font-mono text-slate-300 truncate max-w-[190px]">
+                            {svc.model}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Agências:</span>
+                          <span className="font-semibold text-amber-400">
+                            {svc.agencies?.join(", ")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Latência HTTP:</span>
+                          <span className="font-mono text-emerald-400">
+                            {svc.latency_ms !== null ? `${svc.latency_ms} ms` : "—"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleTriggerService(svc.service_id)}
+                      disabled={isRunning}
+                      className="w-full py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>
+                        {isRunning
+                          ? "Executando Inferência..."
+                          : "Executar Inferência ao Vivo"}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Live Inference Terminal Output */}
+            {lastInferenceOutput && (
+              <div className="bg-[#090e17] border border-emerald-500/40 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400">
+                    <Terminal className="w-4 h-4" />
+                    <span>
+                      RESPOSTA EM TEMPO REAL DO MICROSSERVIÇO (EVENTO PUBLICADO NO MAPA)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setLastInferenceOutput(null)}
+                    className="text-xs text-slate-400 hover:text-white"
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <pre className="bg-[#05080f] p-3 rounded-lg text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-60">
+                  {JSON.stringify(lastInferenceOutput, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Stateful Data Infrastructure */}
+            <div className="bg-[#090e17] border border-slate-800 rounded-xl p-5 space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                <Cpu className="w-4 h-4 text-sky-400" />
+                <span>Camada de Dados & Locks Distribuídos (Containers Ativos)</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {infraServices.map((inf) => (
+                  <div
+                    key={inf.port}
+                    className="p-3 rounded-lg bg-[#060a12] border border-slate-800 space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs text-sky-400">
+                        :{inf.port}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-400">
+                        ● {inf.status}
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-white">{inf.name}</div>
+                    <div className="text-[11px] text-slate-400">{inf.role}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Google Colab GPU Training Notebooks Suite */}
+            <div className="bg-[#090e17] border border-amber-500/30 rounded-xl p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span>
+                      Suíte de Treinamento GPU no Google Colab (PyTorch AMP + Exportação ONNX)
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Notebooks prontos em <code className="text-amber-300">notebooks/colab/</code> configurados para GPUs NVIDIA T4 / L4 / A100 com download automático dos pesos <code className="text-sky-300">.onnx</code>.
+                  </p>
+                </div>
+                <a
+                  href="https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/00_FRONTIER_C4ISR_Master_Colab_Training_Suite.ipynb"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
+                >
+                  🚀 Abrir Master Notebook no Colab
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {[
+                  {
+                    title: "01. Maritime AIS LSTM",
+                    file: "01_Maritime_AIS_LSTM_Colab_GPU.ipynb",
+                    model: "maritime_lstm.onnx",
+                    agency: "USCG / US Navy",
+                  },
+                  {
+                    title: "02. Airspace ADS-B AE",
+                    file: "02_Airspace_ADSB_Autoencoder_Colab_GPU.ipynb",
+                    model: "airspace_ae.onnx",
+                    agency: "USAF / CBP AMO",
+                  },
+                  {
+                    title: "03. Narcotics ST-GNN",
+                    file: "03_Narcotics_STGNN_Corridors_Colab_GPU.ipynb",
+                    model: "narcotics_stgnn.onnx",
+                    agency: "DEA / CBP / HIDTA",
+                  },
+                  {
+                    title: "04. Satellite YOLOv8 Recon",
+                    file: "04_Satellite_YOLOv8_xView_Recon_Colab_GPU.ipynb",
+                    model: "frontier_sat_yolov8.onnx",
+                    agency: "US Army / NGA / FBI",
+                  },
+                ].map((nb) => (
+                  <a
+                    key={nb.file}
+                    href={`https://colab.research.google.com/github/maykonlincolnusa/FRONTIER-OS-Frontier-Operating-System-/blob/main/notebooks/colab/${nb.file}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-3 rounded-lg bg-[#060a12] border border-slate-800 hover:border-amber-500/60 transition flex flex-col justify-between space-y-2"
+                  >
+                    <div>
+                      <div className="font-bold text-white">{nb.title}</div>
+                      <div className="text-[10px] text-amber-400 font-semibold mt-0.5">
+                        {nb.agency}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-800/80">
+                      <span>{nb.model}</span>
+                      <span className="text-sky-400 font-sans font-bold">
+                        Colab ↗
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ======================================================== */}
-        {/* VIEW 4: COPILOTO TÁTICO IA (ASSISTENTE INTERATIVO)      */}
-        {/* ======================================================== */}
-        {activeTab === "copilot" && (
-          <div className="flex-1 flex flex-col h-full bg-[#070b12] p-6 overflow-hidden">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                <Bot className="h-5 w-5 text-purple-400" />
-                <span>Copiloto Tático C4ISR (Multi-Agent RAG & Análise Espacial)</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Converse diretamente com o agente de inteligência em linguagem natural (português ou inglês).
-              </p>
-            </div>
-
-            {/* Quick Prompt Suggestions */}
-            <div className="flex flex-wrap gap-2 mb-4">
+      {/* =====================================================================
+          VIEW 3: COPILOTO TÁTICO IA (Multi-Agent RAG)
+         ===================================================================== */}
+      {activeView === "copilot" && (
+        <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto p-6 overflow-hidden">
+          <div className="flex-1 bg-[#090e17] border border-slate-800 rounded-xl flex flex-col overflow-hidden">
+            {/* Quick Prompts Bar */}
+            <div className="p-3 border-b border-slate-800 flex flex-wrap gap-2 bg-[#060a12]">
               <button
-                onClick={() => handleSendCopilot("Qual a situação atual no Anel 1 Marítimo?")}
-                className="px-3 py-1.5 rounded-lg bg-[#0b1320] border border-sky-500/30 hover:border-sky-500 text-sky-400 text-xs font-medium transition"
+                onClick={() =>
+                  handleSendCopilot(
+                    "Gere um SITREP completo do Anel 1 Marítimo e embarcações Dark Ship"
+                  )
+                }
+                className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-sky-300 transition"
               >
-                🌊 Situação no Anel 1 Marítimo
+                🚢 SITREP Anel 1 (Marítimo)
               </button>
               <button
-                onClick={() => handleSendCopilot("Quais os alertas de narcóticos do CBP e DEA no Porto de Laredo?")}
-                className="px-3 py-1.5 rounded-lg bg-[#0b1320] border border-amber-500/30 hover:border-amber-500 text-amber-400 text-xs font-medium transition"
+                onClick={() =>
+                  handleSendCopilot(
+                    "Qual a previsão de risco de narcóticos nos corredores de Laredo e El Paso?"
+                  )
+                }
+                className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 transition"
               >
-                🚨 Narcóticos e Drogas em Laredo (I-35)
+                ⚠️ Corredores DEA / CBP
               </button>
               <button
-                onClick={() => handleSendCopilot("Onde foi avistado o fugitivo da lista do FBI?")}
-                className="px-3 py-1.5 rounded-lg bg-[#0b1320] border border-red-500/30 hover:border-red-500 text-red-400 text-xs font-medium transition"
+                onClick={() =>
+                  handleSendCopilot(
+                    "Listar alertas de fugitivos do FBI Wanted identificados nas interestaduais I-10 e I-35"
+                  )
+                }
+                className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-rose-300 transition"
               >
-                👤 Fugitivo do FBI no Anel 3
-              </button>
-              <button
-                onClick={() => handleSendCopilot("Gere um relatório SITREP de situação geral para o comando")}
-                className="px-3 py-1.5 rounded-lg bg-[#0b1320] border border-purple-500/30 hover:border-purple-500 text-purple-400 text-xs font-medium transition"
-              >
-                📋 Gerar SITREP Consolidado
+                🚨 Procurados FBI (Anel 3)
               </button>
             </div>
 
             {/* Chat History */}
-            <div className="flex-1 bg-[#0b1320] border border-[#1e2f4a] rounded-xl p-4 overflow-y-auto space-y-4">
-              {copilotMessages.map((msg, idx) => (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {copilotMessages.map((m, i) => (
                 <div
-                  key={idx}
-                  className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                  key={i}
+                  className={`p-3.5 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                    m.role === "user"
+                      ? "bg-sky-500/15 border border-sky-500/30 text-sky-100 ml-12"
+                      : "bg-[#060a12] border border-slate-800 text-slate-200 mr-12"
+                  }`}
                 >
-                  <div
-                    className={`max-w-2xl p-4 rounded-xl text-xs leading-relaxed ${
-                      msg.sender === "user"
-                        ? "bg-sky-600 text-white"
-                        : "bg-[#111c2e] text-slate-200 border border-[#1e2f4a]"
-                    }`}
-                  >
-                    <div className="font-bold text-[10px] uppercase text-slate-400 mb-1">
-                      {msg.sender === "user" ? "COMANDANTE OPERACIONAL" : "COPILOTO TÁTICO C4ISR"}
-                    </div>
-                    <div className="whitespace-pre-wrap">{msg.text}</div>
-                  </div>
+                  {m.text}
                 </div>
               ))}
-              {isCopilotLoading && (
-                <div className="flex items-center space-x-2 text-xs text-purple-400">
-                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                  <span>Consultando modelos de inteligência e base PostGIS...</span>
+              {copilotLoading && (
+                <div className="text-xs text-sky-400 font-mono animate-pulse px-2">
+                  Consultando agentes PostGIS, Qdrant e ST-GNN...
                 </div>
               )}
             </div>
 
-            {/* Input Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendCopilot();
-              }}
-              className="mt-4 flex space-x-2"
-            >
+            {/* Input Box */}
+            <div className="p-3 border-t border-slate-800 flex items-center space-x-2 bg-[#060a12]">
               <input
                 type="text"
-                placeholder="Digite sua pergunta ou instrução tática..."
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#0b1320] border border-[#1e2f4a] text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+                value={copilotPrompt}
+                onChange={(e) => setCopilotPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendCopilot()}
+                placeholder="Pergunte ao Copiloto C4ISR sobre alvos, rotas da América do Sul, fugitivos do FBI ou apreensões..."
+                className="flex-1 bg-[#090e17] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
               />
               <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-2 transition"
+                onClick={() => handleSendCopilot()}
+                className="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center space-x-1"
               >
+                <Send className="w-3.5 h-3.5" />
                 <span>Enviar</span>
-                <Send className="h-3.5 w-3.5" />
               </button>
-            </form>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ======================================================== */}
-        {/* VIEW 5: DADOS REAIS DO GOVERNO DOS EUA                   */}
-        {/* ======================================================== */}
-        {activeTab === "datasets" && (
-          <div className="flex-1 p-6 overflow-y-auto bg-[#070b12]">
-            <div className="mb-6">
-              <h2 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                <Database className="h-5 w-5 text-emerald-400" />
-                <span>Dados Reais do Governo dos EUA (Zero Mocks / Ingestão Oficial)</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Amostras reais consumidas das APIs do FBI Wanted, OpenSky Network, MarineCadastre (NOAA/USCG) e CBP Data Portal.
-              </p>
+      {/* =====================================================================
+          VIEW 4: DADOS OFICIAIS DO GOVERNO DOS EUA (FBI / OpenSky / CBP)
+         ===================================================================== */}
+      {activeView === "govdata" && (
+        <div className="flex-1 overflow-y-auto p-6 bg-[#060a12]">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setGovSubTab("fbi")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  govSubTab === "fbi"
+                    ? "bg-rose-500 text-slate-950"
+                    : "bg-[#090e17] text-slate-300 border border-slate-800"
+                }`}
+              >
+                🚨 FBI Wanted API ({fbiList.length})
+              </button>
+              <button
+                onClick={() => setGovSubTab("opensky")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  govSubTab === "opensky"
+                    ? "bg-sky-500 text-slate-950"
+                    : "bg-[#090e17] text-slate-300 border border-slate-800"
+                }`}
+              >
+                ✈️ Radar OpenSky ({flightsList.length})
+              </button>
+              <button
+                onClick={() => setGovSubTab("cbp")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  govSubTab === "cbp"
+                    ? "bg-amber-500 text-slate-950"
+                    : "bg-[#090e17] text-slate-300 border border-slate-800"
+                }`}
+              >
+                📦 Apreensões CBP (Fentanil / Cocaína)
+              </button>
             </div>
 
-            {/* Sub-Tabs / Grid of Datasets */}
-            <div className="space-y-6">
-              {/* 1. FBI Real Fugitives Gallery */}
-              <div className="bg-[#0b1320] border border-[#1e2f4a] rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-slate-100 flex items-center space-x-2">
-                    <span>👤</span>
-                    <span>FBI Wanted List (100 Fugitivos Reais & Embeddings Faciais no Qdrant)</span>
-                  </h3>
-                  <span className="text-xs px-2 py-0.5 rounded bg-red-950 text-red-400 font-bold border border-red-500/40">
-                    api.fbi.gov/wanted/v1/list
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {fugitives.slice(0, 8).map((f) => (
-                    <div key={f.uid} className="bg-[#111c2e] p-3 rounded-lg border border-[#1e2f4a] flex flex-col justify-between">
-                      <div>
-                        {f.image_url ? (
-                          <img
-                            src={f.image_url}
-                            alt={f.title}
-                            className="w-full h-36 object-cover rounded-md mb-2 border border-[#1e2f4a]"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-36 bg-slate-800 rounded-md mb-2 flex items-center justify-center text-slate-500 text-xs">
-                            Sem Foto
-                          </div>
-                        )}
-                        <h4 className="font-bold text-xs text-slate-100 line-clamp-1">{f.title}</h4>
-                        <p className="text-[10px] text-red-400 font-semibold mt-0.5">{f.warning_message}</p>
-                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{f.description}</p>
+            {govSubTab === "fbi" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {fbiList.map((f) => (
+                  <div
+                    key={f.uid}
+                    className="p-3.5 rounded-xl bg-[#090e17] border border-slate-800 flex space-x-3"
+                  >
+                    {f.image_url && (
+                      <img
+                        src={f.image_url}
+                        alt={f.title}
+                        className="w-16 h-20 object-cover rounded-lg border border-slate-700 shrink-0"
+                      />
+                    )}
+                    <div className="space-y-1 overflow-hidden">
+                      <div className="font-bold text-xs text-white truncate">
+                        {f.title}
                       </div>
-                      <div className="mt-2 pt-2 border-t border-[#1e2f4a] flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                        <span>QDRANT: 512-DIM</span>
-                        <span className="text-sky-400">INDEXADO</span>
+                      <div className="text-[10px] text-rose-400 font-semibold line-clamp-1">
+                        {f.warning_message}
+                      </div>
+                      <div className="text-[11px] text-slate-400 line-clamp-2">
+                        {f.description || f.subjects?.join(", ")}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            )}
 
-              {/* 2. OpenSky Real Border Flights */}
-              <div className="bg-[#0b1320] border border-[#1e2f4a] rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-slate-100 flex items-center space-x-2">
-                    <span>✈️</span>
-                    <span>OpenSky Network (Tráfego Aéreo Real na Fronteira Sul dos EUA)</span>
-                  </h3>
-                  <span className="text-xs px-2 py-0.5 rounded bg-sky-950 text-sky-400 font-bold border border-sky-500/40">
-                    opensky-network.org
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-[#111c2e] text-slate-400 text-[11px] border-b border-[#1e2f4a]">
-                      <tr>
-                        <th className="p-2.5">ICAO24</th>
-                        <th className="p-2.5">CALLSIGN</th>
-                        <th className="p-2.5">PAÍS DE ORIGEM</th>
-                        <th className="p-2.5">LATITUDE / LONGITUDE</th>
-                        <th className="p-2.5">ALTITUDE</th>
-                        <th className="p-2.5">VELOCIDADE</th>
+            {govSubTab === "opensky" && (
+              <div className="bg-[#090e17] border border-slate-800 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#060a12] text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">ICAO24</th>
+                      <th className="p-3">Callsign</th>
+                      <th className="p-3">País</th>
+                      <th className="p-3">Posição</th>
+                      <th className="p-3">Altitude (m)</th>
+                      <th className="p-3">Velocidade (m/s)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {flightsList.map((fl, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/30">
+                        <td className="p-3 text-sky-400">{fl.icao24}</td>
+                        <td className="p-3 font-bold text-white">{fl.callsign}</td>
+                        <td className="p-3 text-slate-300">{fl.origin_country}</td>
+                        <td className="p-3 text-slate-400">
+                          {fl.latitude?.toFixed(2)}°, {fl.longitude?.toFixed(2)}°
+                        </td>
+                        <td className="p-3 text-amber-300">{fl.altitude_m ?? 0}</td>
+                        <td className="p-3 text-emerald-300">{fl.velocity_mps ?? 0}</td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#1e2f4a]/60">
-                      {flights.slice(0, 6).map((fl) => (
-                        <tr key={fl.icao24} className="hover:bg-[#111c2e]/40">
-                          <td className="p-2.5 text-sky-400 font-bold">{fl.icao24}</td>
-                          <td className="p-2.5 text-slate-100 font-bold">{fl.callsign}</td>
-                          <td className="p-2.5 text-slate-300">{fl.origin_country}</td>
-                          <td className="p-2.5 text-slate-400">
-                            {fl.latitude?.toFixed(4)}°, {fl.longitude?.toFixed(4)}°
-                          </td>
-                          <td className="p-2.5 text-slate-300">{fl.altitude_m ? `${Math.round(fl.altitude_m)} m` : "N/D"}</td>
-                          <td className="p-2.5 text-slate-300">{fl.velocity_mps ? `${Math.round(fl.velocity_mps * 1.94)} nós` : "N/D"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 3. CBP Real Drug Seizures Summary */}
-              {cbpSummary && cbpSummary.summary && (
-                <div className="bg-[#0b1320] border border-[#1e2f4a] rounded-xl p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-sm text-slate-100 flex items-center space-x-2">
-                      <span>⚖️</span>
-                      <span>Estatísticas Oficiais de Apreensão de Drogas do CBP (Libras por Porto)</span>
-                    </h3>
-                    <span className="text-xs px-2 py-0.5 rounded bg-amber-950 text-amber-400 font-bold border border-amber-500/40">
-                      cbp.gov/document/stats
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {Object.entries(cbpSummary.summary.top_aor_seizures_lbs || {}).map(([aor, lbs]: [string, any]) => (
-                      <div key={aor} className="p-3 bg-[#111c2e] rounded-lg border border-[#1e2f4a]">
-                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                          {aor.replace(" FIELD OFFICE", "")}
-                        </span>
-                        <span className="text-base font-bold text-amber-400 font-mono mt-1 block">
-                          {Math.round(lbs).toLocaleString()} lbs
-                        </span>
-                      </div>
                     ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {govSubTab === "cbp" && (
+              <div className="bg-[#090e17] border border-slate-800 rounded-xl p-4">
+                <pre className="text-xs font-mono text-amber-300 overflow-x-auto">
+                  {JSON.stringify(cbpSummary, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* ======================================================== */}
-        {/* VIEW 6: GUIA COMPLETO DOS 3 ANÉIS DE SEGURANÇA           */}
-        {/* ======================================================== */}
-        {activeTab === "guide" && (
-          <div className="flex-1 p-8 overflow-y-auto bg-[#070b12] max-w-5xl mx-auto">
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-slate-100">Guia de Arquitetura: Os 3 Anéis de Defesa em Profundidade</h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Entenda o fluxo operacional do Project Frontier e como cada agência dos EUA atua sem sobreposição ou conflito.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Ring 1 */}
-              <div className="p-5 rounded-xl bg-[#0b1320] border-2 border-sky-500/50 flex flex-col justify-between">
-                <div>
-                  <div className="h-10 w-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-lg mb-3">
-                    1
-                  </div>
-                  <h3 className="text-sm font-bold text-sky-400">ANEL 1: MARÍTIMO & COSTA AZUL</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">USCG (Guarda Costeira) & US Navy</p>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Vigilância oceânica contínua cobrindo a Zona Econômica Exclusiva (200 Milhas Náuticas) e o Mar Territorial (12 MN).
-                  </p>
-                  <ul className="text-xs text-slate-400 mt-4 space-y-2 list-disc list-inside">
-                    <li>Detecção de navios sem AIS (*Dark Ships*).</li>
-                    <li>Rendezvous de narcóticos no Golfo do México.</li>
-                    <li>Deep Learning: Autoencoder LSTM de Anomalia de Trajetória.</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-[#1e2f4a] text-[11px] text-sky-400 font-bold">
-                  ➔ Handoff para Anel 2 quando o alvo atinge a costa
-                </div>
-              </div>
-
-              {/* Ring 2 */}
-              <div className="p-5 rounded-xl bg-[#0b1320] border-2 border-amber-500/50 flex flex-col justify-between">
-                <div>
-                  <div className="h-10 w-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg mb-3">
-                    2
-                  </div>
-                  <h3 className="text-sm font-bold text-amber-400">ANEL 2: FRONTEIRA FEDERAL & AÉREA</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">CBP, US Army, USAF & FAA</p>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Perímetro estatuário de 100 milhas ao longo da fronteira terrestre EUA-México e Portos de Entrada oficiais (POEs).
-                  </p>
-                  <ul className="text-xs text-slate-400 mt-4 space-y-2 list-disc list-inside">
-                    <li>Voos clandestinos em baixa altitude (OpenSky ADS-B).</li>
-                    <li>Travessia não-autorizada no deserto (Visão por Satélite YOLOv8).</li>
-                    <li>Inspeção de fentanil e cocaína nos portos (Laredo, Otay Mesa).</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-[#1e2f4a] text-[11px] text-amber-400 font-bold">
-                  ➔ Handoff para Anel 3 quando o alvo acessa rodovias
-                </div>
-              </div>
-
-              {/* Ring 3 */}
-              <div className="p-5 rounded-xl bg-[#0b1320] border-2 border-red-500/50 flex flex-col justify-between">
-                <div>
-                  <div className="h-10 w-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center font-bold text-lg mb-3">
-                    3
-                  </div>
-                  <h3 className="text-sm font-bold text-red-400">ANEL 3: INTERIOR & INTERESTADUAIS</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">FBI, DEA & Polícias Estaduais</p>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Corredores rodoviários estratégicos (I-10, I-35, I-95) e malha de segurança interna dos 50 estados.
-                  </p>
-                  <ul className="text-xs text-slate-400 mt-4 space-y-2 list-disc list-inside">
-                    <li>Busca de fugitivos da lista do FBI por reconhecimento facial (Qdrant).</li>
-                    <li>Previsão de rotas de cartéis via Grafos Espaço-Temporais (ST-GNN).</li>
-                    <li>Interdição interestadual com Polícias Rodoviárias.</li>
-                  </ul>
-                </div>
-                <div className="mt-4 pt-3 border-t border-[#1e2f4a] text-[11px] text-red-400 font-bold">
-                  ➔ Cerco e Mandado Judicial Federal
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
