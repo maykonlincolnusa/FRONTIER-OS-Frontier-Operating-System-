@@ -1,0 +1,42 @@
+[
+  {
+    "sector_id": "san_diego_border_poe",
+    "name": "San Diego / Otay Mesa Port of Entry (US-Mexico Border)",
+    "security_ring": "RING_2_FEDERAL",
+    "bbox": "-117.06,32.53,-116.96,32.58",
+    "file": "data/raw/satellite_samples/san_diego_border_poe.png",
+    "size_bytes": 686048
+  },
+  {
+    "sector_id": "el_paso_juarez_border_poe",
+    "name": "El Paso / Paso Del Norte Port of Entry (US-Mexico Border)",
+    "security_ring": "RING_2_FEDERAL",
+    "bbox": "-106.48,31.74,-106.40,31.79",
+    "file": "data/raw/satellite_samples/el_paso_juarez_border_poe.png",
+    "size_bytes": 710120
+  },
+  {
+    "sector_id": "laredo_world_trade_bridge",
+    "name": "Laredo World Trade Bridge / I-35 Corridor (CBP / HIDTA)",
+    "security_ring": "RING_2_RING_3_INTERSTATE",
+    "bbox": "-99.56,27.50,-99.48,27.56",
+    "file": "data/raw/satellite_samples/laredo_world_trade_bridge.png",
+    "size_bytes": 741509
+  },
+  {
+    "sector_id": "miami_coastal_approaches",
+    "name": "USCG Sector Miami & Biscayne Bay Approaches",
+    "security_ring": "RING_1_MARITIME",
+    "bbox": "-80.19,25.74,-80.11,25.80",
+    "file": "data/raw/satellite_samples/miami_coastal_approaches.png",
+    "size_bytes": 547679
+  },
+  {
+    "sector_id": "corpus_christi_naval_air_station",
+    "name": "Corpus Christi Naval Air Station & Gulf Coast",
+    "security_ring": "RING_1_MARITIME",
+    "bbox": "-97.32,27.67,-97.24,27.73",
+    "file": "data/raw/satellite_samples/corpus_christi_naval_air_station.png",
+    "size_bytes": 501546
+  }
+]

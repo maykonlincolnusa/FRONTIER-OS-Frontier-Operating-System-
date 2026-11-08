@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontier-c4isr
+  labels:
+    app.kubernetes.io/name: frontier-c4isr
+    app.kubernetes.io/part-of: homeland-defense
+    environment: production
+    cloud.provider: oci

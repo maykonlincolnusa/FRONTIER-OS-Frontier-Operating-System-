@@ -7,7 +7,7 @@ provides REST tactical endpoints, and streams live telemetry/handoffs over WebSo
 import asyncio
 import json
 from typing import Any, Dict, List, Optional, Set
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -25,6 +25,7 @@ from shared.events.schemas import (
     SecurityRing,
     ThreatAlertEvent,
 )
+from shared.telemetry import CONTENT_TYPE_LATEST, get_prometheus_metrics
 
 app = FastAPI(
     title="Project Frontier - Tactical C2 Gateway",
@@ -83,6 +84,12 @@ _RECENT_HANDOFFS: List[Dict[str, Any]] = []
 async def healthz():
     """Service health check."""
     return {"status": "HEALTHY", "service": "c2-gateway", "active_clients": len(manager.active_connections)}
+
+
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus telemetry scrape endpoint."""
+    return Response(content=get_prometheus_metrics(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.websocket("/ws/c2-stream")
@@ -229,6 +236,18 @@ async def get_fbi_wanted_matches(limit: int = 10):
         }
 
     return {"total_matches": len(results), "matches": results}
+
+
+@app.get("/api/v1/intel/graph/{target_id}")
+async def get_target_link_graph(target_id: str, depth: int = 2):
+    """
+    Returns the multi-agency cartel ego-graph connecting maritime vessels,
+    border crossing points, vehicles, and FBI Wanted fugitives.
+    """
+    from shared.graph.cartel_graph import CartelLinkGraph
+    graph_instance = CartelLinkGraph.get_instance()
+    subgraph = graph_instance.get_subgraph(root_id=target_id, max_depth=depth)
+    return subgraph
 
 
 @app.post("/api/v1/simulation/inject")

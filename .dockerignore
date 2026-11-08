@@ -1,0 +1,10 @@
+.git
+.venv
+data/
+downloads/
+dashboard-c2/node_modules/
+dashboard-c2/.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+

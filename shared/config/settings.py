@@ -33,10 +33,29 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
     DATABASE_SYNC_URL: Optional[str] = None
 
-    # Redpanda / Kafka Event Bus
+    # Redpanda / Kafka / OCI Streaming Event Bus
     KAFKA_BOOTSTRAP_SERVERS: str = Field(default="localhost:9092")
     KAFKA_CONSUMER_GROUP_PREFIX: str = Field(default="frontier-c4isr")
     KAFKA_SCHEMA_REGISTRY_URL: str = Field(default="http://localhost:8081")
+    # OCI Streaming (Oracle Cloud Managed Kafka) SASL_SSL parameters
+    KAFKA_SECURITY_PROTOCOL: str = Field(default="PLAINTEXT", description="PLAINTEXT | SASL_SSL")
+    KAFKA_SASL_MECHANISM: str = Field(default="PLAIN", description="PLAIN | SCRAM-SHA-256")
+    KAFKA_SASL_USERNAME: Optional[str] = Field(
+        default=None,
+        description="OCI Streaming format: <tenancy_name>/<username>/<stream_pool_ocid>"
+    )
+    KAFKA_SASL_PASSWORD: Optional[str] = Field(
+        default=None,
+        description="OCI Auth Token"
+    )
+
+    # OCI Object Storage (S3-Compatible API)
+    OCI_STORAGE_NAMESPACE: Optional[str] = Field(default=None, description="OCI Tenancy Namespace")
+    OCI_STORAGE_REGION: str = Field(default="us-ashburn-1", description="OCI Region identifier")
+    OCI_STORAGE_BUCKET: str = Field(default="frontier-model-weights")
+    OCI_STORAGE_ACCESS_KEY: Optional[str] = Field(default=None, description="OCI Customer Secret Key (Access Key)")
+    OCI_STORAGE_SECRET_KEY: Optional[str] = Field(default=None, description="OCI Customer Secret Key (Secret)")
+    OCI_STORAGE_ENDPOINT_URL: Optional[str] = None
 
     # Qdrant Vector DB
     QDRANT_HOST: str = Field(default="localhost")
@@ -87,6 +106,37 @@ class Settings(BaseSettings):
         if self.REDIS_URL:
             return self.REDIS_URL
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+
+    def get_kafka_kwargs(self) -> dict:
+        """
+        Construct aiokafka client keyword arguments supporting both local Redpanda (PLAINTEXT)
+        and OCI Streaming (SASL_SSL with PLAIN authentication).
+        """
+        kwargs: dict = {
+            "bootstrap_servers": self.KAFKA_BOOTSTRAP_SERVERS,
+        }
+        if self.KAFKA_SECURITY_PROTOCOL.upper() == "SASL_SSL":
+            import certifi
+            import ssl
+
+            ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+            kwargs.update({
+                "security_protocol": "SASL_SSL",
+                "sasl_mechanism": self.KAFKA_SASL_MECHANISM,
+                "sasl_plain_username": self.KAFKA_SASL_USERNAME,
+                "sasl_plain_password": self.KAFKA_SASL_PASSWORD,
+                "ssl_context": ssl_ctx,
+            })
+        return kwargs
+
+    @property
+    def oci_s3_endpoint(self) -> Optional[str]:
+        """Construct or return the S3-compatible OCI Object Storage endpoint URL."""
+        if self.OCI_STORAGE_ENDPOINT_URL:
+            return self.OCI_STORAGE_ENDPOINT_URL
+        if self.OCI_STORAGE_NAMESPACE:
+            return f"https://{self.OCI_STORAGE_NAMESPACE}.compat.objectstorage.{self.OCI_STORAGE_REGION}.oraclecloud.com"
+        return None
 
 
 @lru_cache()

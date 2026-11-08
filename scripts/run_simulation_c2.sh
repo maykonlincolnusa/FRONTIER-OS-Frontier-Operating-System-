@@ -19,7 +19,7 @@ if curl -s http://localhost:8000/healthz >/dev/null 2>&1; then
     echo "[FRONTIER C2] C2 Gateway is already running on http://localhost:8000"
 else
     echo "[FRONTIER C2] Starting C2 Gateway FastAPI Service on port 8000..."
-    uv run python -m uvicorn services.c2-gateway.main:app --host 0.0.0.0 --port 8000 &
+    uv run python -m uvicorn services.c2_gateway.main:app --host 0.0.0.0 --port 8000 &
     GATEWAY_PID=$!
     trap "kill ${GATEWAY_PID} 2>/dev/null || true" EXIT
     sleep 2

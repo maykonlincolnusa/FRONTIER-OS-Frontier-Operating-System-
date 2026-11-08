@@ -1,0 +1,40 @@
+{
+  "satellite": {
+    "sectors_downloaded": 5,
+    "manifest_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/satellite_samples/satellite_manifest.json"
+  },
+  "total_elapsed_seconds": 4.67,
+  "tiger": {
+    "states_count": 52,
+    "interstates_count": 5599,
+    "postgis_seeded": false
+  },
+  "fbi": {
+    "fugitives_count": 100,
+    "photos_downloaded": 88,
+    "parquet_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/fbi/fbi_embeddings.parquet"
+  },
+  "opensky": {
+    "flights_count": 605,
+    "parquet_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/opensky/border_flights_real.parquet",
+    "snapshot_timestamp": 1794096914
+  },
+  "ais": {
+    "vessels_count": 50000,
+    "parquet_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/ais/uscg_ais_sample.parquet"
+  },
+  "cbp": {
+    "records_count": 7420,
+    "csv_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/cbp/drug_seizures_real.csv",
+    "parquet_path": "/Users/maykonlincolndeazeredosantos/Desktop/FRONTIER-OS (Frontier Operating System) /data/raw/cbp/drug_seizures_real.parquet",
+    "summary": {
+      "top_aor_seizures_lbs": {
+        "SAN DIEGO FIELD OFFICE": 326374.681956832,
+        "NEW YORK FIELD OFFICE": 275204.286586641,
+        "HOUSTON FIELD OFFICE": 265007.724496015,
+        "CHICAGO FIELD OFFICE": 206987.447146121,
+        "LAREDO FIELD OFFICE": 194853.794661034
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+# ==============================================================================
+# Project Frontier (FRONTIER-C4ISR) - OCI Flexible Load Balancer & Ingress
+# Configures Ingress with WebSocket support for /ws/c2-stream and Dashboard on /
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontier-c4isr-ingress
+  namespace: frontier-c4isr
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    # OCI Flexible Load Balancer annotations
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+    # WebSocket support for live tactical streaming
+    nginx.ingress.kubernetes.io/websocket-services: "c2-gateway"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  rules:
+    - http:
+        paths:
+          # Tactical WebSocket Stream to C2 Gateway
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          # REST API & OpenAPI docs to C2 Gateway
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          - path: /docs
+            pathType: Prefix
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          - path: /openapi.json
+            pathType: Exact
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          # SSE Tactical Copilot Assistant
+          - path: /copilot
+            pathType: Prefix
+            backend:
+              service:
+                name: c2-copilot
+                port:
+                  number: 8001
+          # Frontend Dashboard (Next.js)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-c2
+                port:
+                  number: 3000
+---
+# Direct OCI Load Balancer Service Alternative (for clusters without Ingress Controller)
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontier-c4isr-lb
+  namespace: frontier-c4isr
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: dashboard-http
+    - port: 8000
+      targetPort: 8000
+      name: gateway-api-ws
+    - port: 8001
+      targetPort: 8001
+      name: copilot-sse
+  selector:
+    app: dashboard-c2

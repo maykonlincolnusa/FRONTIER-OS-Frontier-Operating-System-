@@ -1,0 +1,375 @@
+# ==============================================================================
+# Project Frontier (FRONTIER-C4ISR) - OKE Microservices Deployments
+# Multi-Arch aarch64/amd64 pods calibrated for OCI Ampere A1 (4 OCPU / 24GB RAM)
+# Configured with /dev/shm IPC shared memory for PyTorch & InferenceProcessPool
+# ==============================================================================
+
+# --- C2 GATEWAY SERVICE & DEPLOYMENT ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: c2-gateway
+  namespace: frontier-c4isr
+  labels:
+    app: c2-gateway
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http-ws
+  selector:
+    app: c2-gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: c2-gateway
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: c2-gateway
+  template:
+    metadata:
+      labels:
+        app: c2-gateway
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: c2-gateway
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "-m", "uvicorn", "services.c2_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "1536Mi"
+            limits:
+              cpu: "800m"
+              memory: "2560Mi"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# --- C2 COPILOT SERVICE & DEPLOYMENT ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: c2-copilot
+  namespace: frontier-c4isr
+  labels:
+    app: c2-copilot
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+      name: http-sse
+  selector:
+    app: c2-copilot
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: c2-copilot
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: c2-copilot
+  template:
+    metadata:
+      labels:
+        app: c2-copilot
+    spec:
+      containers:
+        - name: c2-copilot
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "-m", "uvicorn", "services.c2_copilot.main:app", "--host", "0.0.0.0", "--port", "8001"]
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1536Mi"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# --- SUBSYSTEM 01: MARITIME COASTLINE (USCG/NAVY) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maritime-coastline
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maritime-coastline
+  template:
+    metadata:
+      labels:
+        app: maritime-coastline
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      containers:
+        - name: worker
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "services/01-maritime-coastline/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "768Mi"
+            limits:
+              cpu: "600m"
+              memory: "1536Mi"
+---
+# --- SUBSYSTEM 02: AIRSPACE SHIELD (USAF/FAA) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airspace-shield
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airspace-shield
+  template:
+    metadata:
+      labels:
+        app: airspace-shield
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      containers:
+        - name: worker
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "services/02-airspace-shield/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "768Mi"
+            limits:
+              cpu: "600m"
+              memory: "1536Mi"
+---
+# --- SUBSYSTEM 03: NARCOTICS INTEL (DEA/CBP) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: narcotics-intel
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: narcotics-intel
+  template:
+    metadata:
+      labels:
+        app: narcotics-intel
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      containers:
+        - name: worker
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "services/03-narcotics-intel/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "768Mi"
+            limits:
+              cpu: "600m"
+              memory: "1536Mi"
+---
+# --- SUBSYSTEM 04: CRIMINAL INTERSTATE (FBI) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: criminal-interstate
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: criminal-interstate
+  template:
+    metadata:
+      labels:
+        app: criminal-interstate
+    spec:
+      containers:
+        - name: worker
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "services/04-criminal-interstate/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1024Mi"
+---
+# --- SUBSYSTEM 05: GEOSPATIAL RECON (US ARMY/NGA) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geospatial-recon
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geospatial-recon
+  template:
+    metadata:
+      labels:
+        app: geospatial-recon
+    spec:
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+      containers:
+        - name: worker
+          image: frontier-c4isr/gateway:latest
+          command: ["python", "services/05-geospatial-recon/worker.py"]
+          envFrom:
+            - configMapRef:
+                name: frontier-config
+            - secretRef:
+                name: frontier-secrets
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "768Mi"
+            limits:
+              cpu: "600m"
+              memory: "1536Mi"
+---
+# --- DASHBOARD FRONTEND (NEXT.JS) ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-c2
+  namespace: frontier-c4isr
+  labels:
+    app: dashboard-c2
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: dashboard-c2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-c2
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard-c2
+  template:
+    metadata:
+      labels:
+        app: dashboard-c2
+    spec:
+      containers:
+        - name: dashboard
+          image: frontier-c4isr/dashboard:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_C2_WS_URL
+              value: "/ws/c2-stream"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "384Mi"
+            limits:
+              cpu: "500m"
+              memory: "1024Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5

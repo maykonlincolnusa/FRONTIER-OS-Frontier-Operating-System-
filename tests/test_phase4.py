@@ -62,3 +62,4 @@ def test_multi_agency_fusion_engine():
     assert jtf2 is not None
     assert "TARGET-BEACH-99" in jtf2.correlated_targets
     assert "CONVOY-01" in jtf2.correlated_targets
+

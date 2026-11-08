@@ -29,18 +29,13 @@ GEOFENCE_DEFINITIONS = [
         "ring_level": 1,
         "lead_agencies": ["USCG", "US_NAVY"],
         "description": "Outer perimeter: US Territorial Waters (12 NM), Contiguous Zone (24 NM), and Exclusive Economic Zone (200 NM) covering Gulf of Mexico, Atlantic, and Pacific approaches.",
-        "wkt": """
-        MULTIPOLYGON((
-            -- Gulf of Mexico Maritime Approach & EEZ
+        "wkt": """MULTIPOLYGON((
             (-97.8 25.0, -97.5 21.0, -82.0 21.0, -80.0 24.5, -82.0 28.5, -88.0 29.5, -94.0 29.0, -97.8 25.0)
         ), (
-            -- Atlantic Coastal EEZ
             (-80.5 24.5, -74.0 24.5, -65.0 35.0, -66.0 45.0, -70.0 44.0, -75.0 35.0, -80.0 28.0, -80.5 24.5)
         ), (
-            -- Pacific Coastal EEZ
             (-125.0 49.0, -132.0 49.0, -132.0 32.0, -120.0 28.0, -117.0 32.0, -122.0 38.0, -124.5 46.0, -125.0 49.0)
-        ))
-        """,
+        ))""",
     },
     {
         "ring_id": "RING_2_FEDERAL",
@@ -48,15 +43,11 @@ GEOFENCE_DEFINITIONS = [
         "ring_level": 2,
         "lead_agencies": ["CBP", "US_ARMY", "USAF", "FAA", "NGA"],
         "description": "Main defensive perimeter: 100-mile statutory border zone along US-Mexico Southern Border, US-Canada Northern Border, Sovereign Airspace, and official Ports of Entry.",
-        "wkt": """
-        MULTIPOLYGON((
-            -- US-Mexico Southern Border Statutory 100-mile Zone
+        "wkt": """MULTIPOLYGON((
             (-117.5 32.8, -117.2 31.8, -114.5 31.5, -111.0 30.8, -108.0 31.0, -106.5 31.2, -104.0 29.5, -101.0 28.5, -97.5 25.5, -96.8 26.2, -99.5 28.8, -103.5 30.5, -106.0 32.5, -111.0 32.5, -115.0 33.2, -117.5 32.8)
         ), (
-            -- US-Canada Northern Border Security Buffer
             (-124.5 49.5, -122.5 48.5, -110.0 48.5, -95.0 48.5, -82.0 45.0, -71.0 44.5, -67.0 45.0, -66.8 47.5, -74.0 45.5, -83.0 46.5, -95.0 49.5, -110.0 49.5, -124.5 49.5)
-        ))
-        """,
+        ))""",
     },
     {
         "ring_id": "RING_3_INTERSTATE",
@@ -64,12 +55,9 @@ GEOFENCE_DEFINITIONS = [
         "ring_level": 3,
         "lead_agencies": ["FBI", "DEA", "USDOT", "STATE_TROOPERS"],
         "description": "Inner perimeter: Continental US state boundaries across CA, AZ, NM, TX, FL and strategic interstate transit corridors (I-10, I-35, I-95).",
-        "wkt": """
-        MULTIPOLYGON((
-            -- Continental US Interior Heartland & Transport Corridors
+        "wkt": """MULTIPOLYGON((
             (-122.5 48.0, -122.5 34.0, -116.0 33.5, -106.0 33.0, -99.0 29.5, -96.5 28.0, -82.0 28.5, -76.0 35.0, -71.5 42.0, -74.0 44.5, -83.0 44.5, -95.0 48.0, -110.0 48.0, -122.5 48.0)
-        ))
-        """,
+        ))""",
     },
 ]
 

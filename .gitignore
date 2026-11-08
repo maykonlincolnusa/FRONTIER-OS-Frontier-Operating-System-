@@ -55,12 +55,27 @@ redis_data/
 *.weights
 *.h5
 *.tflite
-data/
+# Heavy data files and binary caches (run `make download-gov-data` to populate)
+data/raw/tiger/downloads/
+data/raw/tiger/*_extracted/
+data/raw/**/*.parquet
+data/raw/**/*.csv
+data/raw/**/*.geojson
+data/raw/**/*.jpg
+data/raw/**/*.png
+data/raw/**/*.zip
+data/raw/fbi_photos/
+data/processed/
 downloads/
 shapefiles/
+!data/**/.gitkeep
+!data/raw/ingestion_summary.json
+!data/raw/satellite_samples/satellite_manifest.json
 
 # Node / Frontend
 node_modules/
 .next/
 out/
+next-env.d.ts
+*.tsbuildinfo
 

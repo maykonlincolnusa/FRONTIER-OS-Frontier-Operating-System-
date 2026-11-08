@@ -83,3 +83,4 @@ class GlobalONNXModelRegistry:
         if model_name not in cls._sessions:
             cls._sessions[model_name] = LockedONNXSession(model_path=model_path)
         return cls._sessions[model_name]
+
