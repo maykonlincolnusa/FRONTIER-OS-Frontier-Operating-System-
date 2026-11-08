@@ -1,0 +1,36 @@
+# ==============================================================================
+# Project Frontier (FRONTIER-OS) - Cloud SQL Auth Proxy Sidecar
+# Connects GKE Autopilot / Cloud Run pods to Google Cloud SQL (PostgreSQL 16 + pgvector)
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-sql-proxy
+  namespace: frontier-c4isr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloud-sql-proxy
+  template:
+    metadata:
+      labels:
+        app: cloud-sql-proxy
+    spec:
+      containers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.3
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "${PROJECT_ID}:${REGION}:frontier-c4isr-pgvector"
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

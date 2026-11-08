@@ -1,9 +1,10 @@
 """
 Project Frontier - Shared Storage Package
-OCI Object Storage & Weight Loader integrations.
+Google Cloud Storage & Weight Loader integrations.
 """
 
-from shared.storage.oci_weights_loader import OCIWeightsLoader, ensure_model_weights
+from shared.storage.gcs_weights_loader import GCSWeightsLoader, ensure_model_weights
+from shared.storage.oci_weights_loader import OCIWeightsLoader
 
-__all__ = ["OCIWeightsLoader", "ensure_model_weights"]
+__all__ = ["GCSWeightsLoader", "OCIWeightsLoader", "ensure_model_weights"]
 

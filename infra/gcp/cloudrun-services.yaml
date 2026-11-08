@@ -1,0 +1,75 @@
+# ==============================================================================
+# Project Frontier (FRONTIER-OS) - Google Cloud Run Services
+# Serverless Auto-scaling Microservices & C2 Tactical Dashboard
+# Managed under Google Cloud Run v2 API with Cloud SQL pgvector connector
+# ==============================================================================
+
+# --- C2 GATEWAY ON GOOGLE CLOUD RUN ---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: frontier-c2-gateway
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      containers:
+        - image: us-central1-docker.pkg.dev/${PROJECT_ID}/frontier-c4isr/gateway:latest
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          env:
+            - name: GCP_PROJECT_ID
+              value: "${PROJECT_ID}"
+            - name: GCP_REGION
+              value: "${REGION}"
+            - name: GCS_WEIGHTS_BUCKET
+              value: "frontier-c4isr-weights"
+            - name: C2_GATEWAY_HOST
+              value: "0.0.0.0"
+            - name: C2_GATEWAY_PORT
+              value: "8080"
+          ports:
+            - containerPort: 8080
+              name: http1
+---
+# --- C4ISR DASHBOARD (NEXT.JS) ON GOOGLE CLOUD RUN ---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: frontier-c2-dashboard
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "8"
+    spec:
+      containerConcurrency: 80
+      containers:
+        - image: us-central1-docker.pkg.dev/${PROJECT_ID}/frontier-c4isr/dashboard:latest
+          resources:
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          env:
+            - name: NEXT_PUBLIC_GATEWAY_URL
+              value: "https://frontier-c2-gateway-${PROJECT_HASH}-uc.a.run.app"
+            - name: PORT
+              value: "3000"
+          ports:
+            - containerPort: 3000

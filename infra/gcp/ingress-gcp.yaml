@@ -1,0 +1,38 @@
+# ==============================================================================
+# Project Frontier (FRONTIER-OS) - Google Cloud Load Balancing Ingress
+# Managed SSL Certificate + Cloud Armor WAF integration
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontier-c4isr-ingress
+  namespace: frontier-c4isr
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/managed-certificates: "frontier-ssl-cert"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          - path: /ws/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: c2-gateway
+                port:
+                  number: 8000
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: tactical-dashboard
+                port:
+                  number: 3000

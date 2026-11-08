@@ -246,6 +246,7 @@ Every manifest audit, border inspection, and confirmed interdiction in FRONTIER-
 | `POST` | `/api/v1/intel/colab-live-sandbox` | `~0.6 ms` | Interactive live tensor inference across `maritime_lstm.onnx`, `airspace_ae.onnx` & `narcotics_stgnn.onnx`. |
 | `GET` | `/api/v1/intel/corporate-network` | `~0.9 ms` | Returns UBO corporate shell chains (`Panama`, `BVI`, `London LLP`, `Dubai DMCC`, `Marshall Islands`). |
 | `GET` | `/api/v1/intel/custody-and-stix` | `~1.0 ms` | Verifies the SHA-256 Chain of Custody ledger and exports an **OASIS STIX 2.1** bundle. |
+| `GET` | `/api/v1/intel/human-trafficking-missing` | `~3.2 ms` | Integrates official FBI Wanted/ViCAP Missing Persons API, Interpol Yellow Notices, and PF SINESP Amber Alert. |
 | `GET` | `/api/v1/microservices/status` | `< 1.0 ms` | Parallel `asyncio.gather` health & latency probe across all 7 microservices (`8000`–`8006`). |
 | `WS` | `/ws/c2` | Real-Time | Streams live `ThreatAlertEvent` and `InternationalCorridorHandoffEvent` messages to the C2 UI. |
 
@@ -281,6 +282,19 @@ uv run pytest -q --tb=short
 
 # Run strict TypeScript validation on the Next.js Command Center
 ./dashboard-c2/node_modules/.bin/tsc -p dashboard-c2/tsconfig.json --noEmit
+```
+
+### 4. Deploy to Google Cloud (Cloud Run / GKE Autopilot)
+```bash
+# Set your active Google Cloud Project
+export GCP_PROJECT_ID="your-gcp-project-id"
+export GCP_REGION="us-central1"
+
+# Option A: Deploy Serverless C2 Gateway & Tactical Dashboard to Google Cloud Run
+make gcp-deploy-cloudrun
+
+# Option B: Deploy complete microservices mesh & KEDA event scalers to Google GKE Autopilot
+make gcp-deploy-gke
 ```
 
 ---

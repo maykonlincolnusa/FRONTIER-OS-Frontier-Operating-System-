@@ -49,8 +49,18 @@ class Settings(BaseSettings):
         description="OCI Auth Token"
     )
 
-    # OCI Object Storage (S3-Compatible API)
-    OCI_STORAGE_NAMESPACE: Optional[str] = Field(default=None, description="OCI Tenancy Namespace")
+    # Google Cloud Architecture (Cloud Run, GKE Autopilot, Cloud SQL pgvector, Cloud Storage, BigQuery)
+    GCP_PROJECT_ID: Optional[str] = Field(default=None, description="Google Cloud Project ID")
+    GCP_REGION: str = Field(default="us-central1", description="Default Google Cloud Region")
+    GCS_WEIGHTS_BUCKET: str = Field(default="frontier-c4isr-weights", description="Google Cloud Storage Bucket for ONNX weights")
+    GCP_ARTIFACT_REGISTRY: str = Field(
+        default="us-central1-docker.pkg.dev",
+        description="Google Cloud Artifact Registry hostname"
+    )
+    BIGQUERY_DATASET: str = Field(default="frontier_intel", description="BigQuery dataset for audit telemetry")
+
+    # Legacy / Secondary Object Storage (S3-Compatible API)
+    OCI_STORAGE_NAMESPACE: Optional[str] = Field(default=None, description="Tenancy Namespace")
     OCI_STORAGE_REGION: str = Field(default="us-ashburn-1", description="OCI Region identifier")
     OCI_STORAGE_BUCKET: str = Field(default="frontier-model-weights")
     OCI_STORAGE_ACCESS_KEY: Optional[str] = Field(default=None, description="OCI Customer Secret Key (Access Key)")
