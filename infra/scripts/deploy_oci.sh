@@ -122,3 +122,4 @@ elif [ "${TARGET_MODE}" = "vm" ]; then
 fi
 
 echo -e "\n${GREEN}Deployment process completed.${NC}\n"
+

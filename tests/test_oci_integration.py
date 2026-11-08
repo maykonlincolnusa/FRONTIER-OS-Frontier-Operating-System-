@@ -90,3 +90,4 @@ def test_docker_compose_oci_ampere_syntax():
         assert "qdrant" in data["services"]
         # Ensure /dev/shm is configured for multiprocessing
         assert data["services"]["c2-gateway"]["shm_size"] == "2gb"
+

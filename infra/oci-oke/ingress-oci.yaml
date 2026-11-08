@@ -97,3 +97,4 @@ spec:
       name: copilot-sse
   selector:
     app: dashboard-c2
+

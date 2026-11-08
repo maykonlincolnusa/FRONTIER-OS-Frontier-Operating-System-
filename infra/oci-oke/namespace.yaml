@@ -7,3 +7,4 @@ metadata:
     app.kubernetes.io/part-of: homeland-defense
     environment: production
     cloud.provider: oci
+
