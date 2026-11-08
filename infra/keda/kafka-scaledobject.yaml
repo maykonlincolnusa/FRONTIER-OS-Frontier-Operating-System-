@@ -1,0 +1,195 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: redpanda-auth
+  namespace: frontier-os
+spec:
+  secretTargetRef:
+    - parameter: sasl
+      name: redpanda-credentials
+      key: sasl-mechanism
+---
+# 01. Maritime & Blue Border Subsystem Autoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: maritime-coastline-scaler
+  namespace: frontier-os
+  labels:
+    app.kubernetes.io/name: frontier-os
+    app.kubernetes.io/subsystem: 01-maritime-coastline
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontier-maritime-coastline
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 30
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-maritime-consumer-group
+        topic: raw.ais.positions
+        lagThreshold: "30"
+        offsetResetPolicy: latest
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-maritime-alert-group
+        topic: alerts.maritime.threats
+        lagThreshold: "10"
+        offsetResetPolicy: latest
+---
+# 02. Airspace Shield & Low-Alt Radar Autoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: airspace-shield-scaler
+  namespace: frontier-os
+  labels:
+    app.kubernetes.io/name: frontier-os
+    app.kubernetes.io/subsystem: 02-airspace-radar
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontier-airspace-radar
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-airspace-consumer-group
+        topic: raw.adsb.airspace
+        lagThreshold: "30"
+        offsetResetPolicy: latest
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-airspace-alert-group
+        topic: alerts.airspace.threats
+        lagThreshold: "10"
+        offsetResetPolicy: latest
+---
+# 03. Narcotics Intelligence & GNN Hotspots Autoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: narcotics-intel-scaler
+  namespace: frontier-os
+  labels:
+    app.kubernetes.io/name: frontier-os
+    app.kubernetes.io/subsystem: 03-narcotics-intel
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontier-narcotics-intel
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-narcotics-consumer-group
+        topic: intel.narcotics.hotspots
+        lagThreshold: "20"
+        offsetResetPolicy: latest
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-handoff-consumer-group
+        topic: events.jurisdiction.handoff
+        lagThreshold: "15"
+        offsetResetPolicy: latest
+---
+# 04. Ground Fugitives & Facial Biometrics Autoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ground-fugitives-scaler
+  namespace: frontier-os
+  labels:
+    app.kubernetes.io/name: frontier-os
+    app.kubernetes.io/subsystem: 04-ground-fugitives
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontier-ground-fugitives
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-fugitives-consumer-group
+        topic: fugitives.sightings.raw
+        lagThreshold: "25"
+        offsetResetPolicy: latest
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-fugitives-alert-group
+        topic: alerts.ground.fugitives
+        lagThreshold: "10"
+        offsetResetPolicy: latest
+---
+# 05. C4ISR Multi-INT Fusion & Jurisdictional Handoff Autoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: c4isr-fusion-scaler
+  namespace: frontier-os
+  labels:
+    app.kubernetes.io/name: frontier-os
+    app.kubernetes.io/subsystem: 05-c4isr-fusion
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontier-c4isr-fusion
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-c4isr-fusion-group
+        topic: alerts.c4isr.fused
+        lagThreshold: "15"
+        offsetResetPolicy: latest
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.frontier-os.svc.cluster.local:9092
+        consumerGroup: frontier-c4isr-handoff-group
+        topic: events.jurisdiction.handoff
+        lagThreshold: "10"
+        offsetResetPolicy: latest

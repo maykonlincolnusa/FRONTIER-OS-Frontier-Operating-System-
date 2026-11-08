@@ -6,6 +6,7 @@ provides REST tactical endpoints, and streams live telemetry/handoffs over WebSo
 
 import asyncio
 import json
+import time
 from typing import Any, Dict, List, Optional, Set
 from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,11 +19,20 @@ except ImportError:
 
 from ml_training.models.face_matcher import FaceEmbeddingEngine
 from shared.config import get_settings
+from shared.connectors.latam_osint import (
+    PANAMERICAN_CORRIDORS,
+    PANAMERICAN_NODES,
+    LatamOSINTConnector,
+)
 from shared.events.schemas import (
     Agency,
+    InternationalCorridorHandoffEvent,
     JurisdictionHandoffEvent,
     KafkaTopic,
     SecurityRing,
+    TheaterOfOperations,
+    TransnationalSyndicate,
+    TransportModal,
     ThreatAlertEvent,
 )
 from shared.telemetry import CONTENT_TYPE_LATEST, get_prometheus_metrics
@@ -542,5 +552,59 @@ async def trigger_microservice_inference(service_id: str, payload: Dict[str, Any
             return result
         except Exception as e:
             return {"service": service_id, "status": "ERROR", "error": str(e)}
+
+
+# ============================================================================
+# PAN-AMERICAN MULTI-THEATER & LATAM OSINT ENDPOINTS
+# ============================================================================
+
+@app.get("/api/v1/panamerican/nodes")
+async def get_panamerican_nodes(theater: Optional[str] = None):
+    """Returns strategic Pan-American nodes (ports, highway junctures, riverine hubs)."""
+    nodes = PANAMERICAN_NODES
+    if theater and theater != "ALL":
+        nodes = [n for n in nodes if n["theater"].value == theater or n["theater"].name == theater]
+    return {"count": len(nodes), "nodes": nodes}
+
+
+@app.get("/api/v1/panamerican/corridors")
+async def get_panamerican_corridors():
+    """Returns active Pan-American multimodal logistics corridors."""
+    return {"count": len(PANAMERICAN_CORRIDORS), "corridors": PANAMERICAN_CORRIDORS}
+
+
+@app.get("/api/v1/panamerican/handoffs")
+async def get_panamerican_handoffs(count: int = 6):
+    """Returns simulated active transnational corridor handoffs across 7 theaters."""
+    connector = LatamOSINTConnector.get_instance()
+    handoffs = connector.sample_live_osint_events(count=count)
+    return {"count": len(handoffs), "handoffs": [h.model_dump() for h in handoffs]}
+
+
+@app.post("/api/v1/panamerican/corridor/simulate")
+async def simulate_panamerican_passage():
+    """
+    Executes a multi-act transnational run from Colombia/Brazil
+    through Panama and Mexico to US Rings, broadcasting events to C2 operators.
+    """
+    connector = LatamOSINTConnector.get_instance()
+    handoffs = connector.sample_live_osint_events(count=4)
+    for h in handoffs:
+        d = h.model_dump()
+        _RECENT_HANDOFFS.append(d)
+        await manager.broadcast({"type": "INTERNATIONAL_HANDOFF", "data": d})
+    return {"status": "DISPATCHED", "events_emitted": len(handoffs), "handoffs": [h.model_dump() for h in handoffs]}
+
+
+@app.post("/api/v1/handoffs/{handoff_id}/authorize")
+async def authorize_interagency_handoff(handoff_id: str):
+    """Operator authorization for cross-jurisdiction tactical interception."""
+    return {
+        "status": "AUTHORIZED",
+        "handoff_id": handoff_id,
+        "action": "INTERCEPTION_ORDER_DISPATCHED",
+        "timestamp": time.time() if "time" in globals() else 1731000000.0,
+    }
+
 
 

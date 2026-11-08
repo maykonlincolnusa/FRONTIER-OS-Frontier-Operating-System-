@@ -8,6 +8,7 @@ import asyncio
 from typing import Any, Dict, List, Optional
 
 from shared.concurrency.mp_engine import InferenceProcessPool
+from shared.geo.h3_index import H3SpatialIndex
 from shared.events.schemas import (
     Agency,
     KafkaTopic,
@@ -21,6 +22,7 @@ class MaritimeWorker:
 
     def __init__(self, mp_pool: Optional[InferenceProcessPool] = None):
         self.pool = mp_pool or InferenceProcessPool.get_instance()
+        self.h3_index = H3SpatialIndex.get_instance()
         self.anomaly_threshold = 0.65
 
     async def process_ais_trajectory(
@@ -35,6 +37,14 @@ class MaritimeWorker:
         if not positions or len(positions) < 3:
             return None
 
+        last_pos = positions[-1]
+        lat = float(last_pos.get("latitude", 26.0))
+        lon = float(last_pos.get("longitude", -90.0))
+
+        # O(1) H3 spatial pre-filter: verify if vessel is in Ring 1 or Pan-American chokepoint
+        is_candidate, candidate_ring = self.h3_index.fast_lookup_ring(lat, lon)
+        h3_cell = self.h3_index.latlng_to_h3(lat, lon)
+
         # Build normalized feature sequence for the TrajectoryAnomalyLSTM
         features = []
         for p in positions:
@@ -48,14 +58,11 @@ class MaritimeWorker:
         # Delegate PyTorch inference to the isolated Multiprocessing Pool
         score = await self.pool.infer_maritime_anomaly(features)
 
-        last_pos = positions[-1]
-        lat = float(last_pos.get("latitude", 26.0))
-        lon = float(last_pos.get("longitude", -90.0))
-
         if score >= self.anomaly_threshold:
+            assigned_ring = candidate_ring or SecurityRing.RING_1_MARITIME
             alert = ThreatAlertEvent(
                 subsystem="01-maritime-coastline",
-                ring=SecurityRing.RING_1_MARITIME,
+                ring=assigned_ring,
                 lead_agency=Agency.USCG,
                 severity=round(score, 4),
                 latitude=lat,
@@ -67,6 +74,8 @@ class MaritimeWorker:
                     "anomaly_score": score,
                     "sog_knots": last_pos.get("sog"),
                     "track_length": len(positions),
+                    "h3_cell": h3_cell,
+                    "h3_candidate": is_candidate,
                 },
             )
             return alert

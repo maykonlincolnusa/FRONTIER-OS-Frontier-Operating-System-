@@ -12,8 +12,11 @@ import torch
 from services.narcotics_intel.cbp_data import build_border_interstate_graph
 from services.narcotics_intel.models import SpatioTemporalGNN
 from shared.concurrency.mp_engine import InferenceProcessPool
+from shared.connectors.latam_osint import LatamOSINTConnector
+from shared.geo.h3_index import H3SpatialIndex
 from shared.events.schemas import (
     Agency,
+    InternationalCorridorHandoffEvent,
     KafkaTopic,
     SecurityRing,
     ThreatAlertEvent,
@@ -25,6 +28,8 @@ class NarcoticsIntelWorker:
 
     def __init__(self, mp_pool: Optional[InferenceProcessPool] = None):
         self.pool = mp_pool or InferenceProcessPool.get_instance()
+        self.h3_index = H3SpatialIndex.get_instance()
+        self.latam_osint = LatamOSINTConnector.get_instance()
         self.graph_def = build_border_interstate_graph()
         self.num_nodes = self.graph_def["num_nodes"]
         self.adj_matrix = self._build_normalized_adj()
@@ -73,15 +78,20 @@ class NarcoticsIntelWorker:
         alerts = []
         for n_idx, node in enumerate(self.graph_def["nodes"]):
             risk_score = float(risks[n_idx])
+            lat = float(node["lat"])
+            lon = float(node["lon"])
+            is_cand, cand_ring = self.h3_index.fast_lookup_ring(lat, lon)
+            h3_cell = self.h3_index.latlng_to_h3(lat, lon)
+
             if risk_score >= 0.65:
-                ring = SecurityRing.RING_2_FEDERAL if node["type"] == "POE" else SecurityRing.RING_3_INTERSTATE
+                ring = cand_ring or (SecurityRing.RING_2_FEDERAL if node["type"] == "POE" else SecurityRing.RING_3_INTERSTATE)
                 alert = ThreatAlertEvent(
                     subsystem="03-narcotics-intel",
                     ring=ring,
                     lead_agency=Agency.DEA,
                     severity=round(risk_score, 4),
-                    latitude=float(node["lat"]),
-                    longitude=float(node["lon"]),
+                    latitude=lat,
+                    longitude=lon,
                     target_id=node["id"],
                     threat_type="NARCOTICS_CORRIDOR_SURGE",
                     metadata={
@@ -89,9 +99,21 @@ class NarcoticsIntelWorker:
                         "node_type": node.get("type"),
                         "surge_probability": round(risk_score, 4),
                         "time_horizon": "24h",
+                        "h3_cell": h3_cell,
+                        "h3_candidate": is_cand,
                         "agencies_notified": ["DEA", "CBP", "State Troopers"],
                     },
                 )
                 alerts.append(alert)
 
         return alerts
+
+    def generate_panamerican_corridor_alerts(
+        self,
+        count: int = 5,
+    ) -> List[InternationalCorridorHandoffEvent]:
+        """
+        Ingests multi-theater transnational events across Pan-American corridors
+        connecting Brazil/Colombia to Mexico and US Rings.
+        """
+        return self.latam_osint.sample_live_osint_events(count=count)

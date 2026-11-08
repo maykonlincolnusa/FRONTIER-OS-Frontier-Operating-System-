@@ -19,8 +19,41 @@ class SecurityRing(str, Enum):
     RING_3_INTERSTATE = "RING_3_INTERSTATE"
 
 
+class TheaterOfOperations(str, Enum):
+    """Federated Pan-American Theaters of Operations."""
+    USA = "USA"
+    BRAZIL = "BRAZIL"
+    COLOMBIA = "COLOMBIA"
+    MEXICO = "MEXICO"
+    PANAMA = "PANAMA"
+    CHILE = "CHILE"
+    ARGENTINA = "ARGENTINA"
+
+
+class TransnationalSyndicate(str, Enum):
+    """Major Transnational Criminal Organizations (TCOs) and Drug Cartels."""
+    PCC = "PCC"  # Primeiro Comando da Capital (Santos, Hidrovia Paraná-Paraguai)
+    CV = "CV"    # Comando Vermelho (Rota Solimões / Amazônia)
+    SINALOA_CARTEL = "SINALOA_CARTEL"
+    CJNG = "CJNG"  # Cártel Jalisco Nueva Generación
+    CLAN_DEL_GOLFO = "CLAN_DEL_GOLFO"
+    TREN_DE_ARAGUA = "TREN_DE_ARAGUA"
+    UNKNOWN = "UNKNOWN"
+
+
+class TransportModal(str, Enum):
+    """Multimodal Illicit Logistics and Conveyance."""
+    MARITIME_CONTAINER = "MARITIME_CONTAINER"
+    SEMI_SUBMERSIBLE = "SEMI_SUBMERSIBLE"
+    RIVERINE_BARGE = "RIVERINE_BARGE"
+    CLANDESTINE_AIRCRAFT = "CLANDESTINE_AIRCRAFT"
+    HIGHWAY_FREIGHT = "HIGHWAY_FREIGHT"
+    PANAMA_CANAL_TRANSIT = "PANAMA_CANAL_TRANSIT"
+
+
 class Agency(str, Enum):
-    """Participating C4ISR Defense & Law Enforcement Agencies."""
+    """Participating Pan-American C4ISR Defense & Law Enforcement Agencies."""
+    # United States Agencies
     USCG = "USCG"
     US_NAVY = "US_NAVY"
     USAF = "USAF"
@@ -30,6 +63,17 @@ class Agency(str, Enum):
     FBI = "FBI"
     USDOT = "USDOT"
     STATE_TROOPERS = "STATE_TROOPERS"
+    # Latin American Partner Agencies
+    PF_BR = "PF_BR"                      # Polícia Federal (Brasil)
+    PRF_BR = "PRF_BR"                    # Polícia Rodoviária Federal (Brasil)
+    ANTAQ_BR = "ANTAQ_BR"                # Agência Nac. de Transportes Aquaviários (Brasil)
+    MARINHA_BR = "MARINHA_BR"            # Marinha do Brasil
+    FAB_BR = "FAB_BR"                    # Força Aérea Brasileira
+    ARMADA_CO = "ARMADA_CO"              # Armada Nacional de Colombia
+    ACP_PA = "ACP_PA"                    # Autoridad del Canal de Panamá
+    DIRECTEMAR_CL = "DIRECTEMAR_CL"      # Dir. Gen. del Territorio Marítimo (Chile)
+    PREFECTURA_AR = "PREFECTURA_AR"      # Prefectura Naval Argentina
+    INTERPOL = "INTERPOL"                # International Criminal Police Organization
 
 
 class TargetType(str, Enum):
@@ -50,6 +94,7 @@ class KafkaTopic(str, Enum):
     INTEL_NARCOTICS_HOTSPOTS = "intel.narcotics.hotspots"
     ALERTS_CRIMINAL_SIGHTING = "alerts.criminal.sighting"
     EVENTS_JURISDICTION_HANDOFF = "events.jurisdiction.handoff"
+    EVENTS_INTERNATIONAL_HANDOFF = "events.international.handoff"
     TELEMETRY_TRACKED_ENTITIES = "telemetry.tracked.entities"
 
 
@@ -116,6 +161,28 @@ class JurisdictionHandoffEvent(FrontierBaseEvent):
     last_known_lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude at crossing point")
     last_known_lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude at crossing point")
     reason: str = Field(..., description="Operational reason for handoff")
+
+
+class InternationalCorridorHandoffEvent(FrontierBaseEvent):
+    """
+    Emitted when suspicious cargo, vessel, aircraft, or syndicate entity crosses
+    between Pan-American Theaters of Operations (e.g. Brazil -> Panama -> Mexico -> USA).
+    """
+    handoff_id: UUID = Field(default_factory=uuid4, description="Unique international handoff ID")
+    timestamp: datetime = Field(default_factory=utc_now, description="UTC timestamp")
+    target_id: str = Field(..., description="Tracking identifier (container, MMSI, flight, individual)")
+    syndicate: TransnationalSyndicate = Field(default=TransnationalSyndicate.UNKNOWN, description="Attributed criminal faction")
+    modal: TransportModal = Field(default=TransportModal.MARITIME_CONTAINER, description="Conveyance / Transport Modal")
+    origin_theater: TheaterOfOperations = Field(..., description="Departure / Origin nation")
+    destination_theater: TheaterOfOperations = Field(..., description="Destination nation")
+    from_agency: Agency = Field(..., description="Handing-off partner agency")
+    to_agency: Agency = Field(..., description="Receiving agency assuming tactical oversight")
+    chokepoint: str = Field(..., description="Critical hub/port/strait, e.g. Port of Santos, Panama Canal, Laredo POE")
+    cargo_manifest: dict[str, Any] = Field(default_factory=dict, description="B/L, declared contents, weight")
+    risk_score: float = Field(..., ge=0.0, le=1.0, description="ST-GNN or heuristic risk score")
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+    operational_summary: str = Field(..., description="Actionable intelligence summary for interdiction")
 
 
 class EntityTelemetryEvent(FrontierBaseEvent):

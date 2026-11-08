@@ -31,7 +31,7 @@ const TacticalMap = dynamic(() => import("./components/TacticalMap"), {
     <div className="flex flex-col items-center justify-center h-full w-full bg-[#060a12] text-sky-400 space-y-3">
       <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
       <span className="font-mono text-xs tracking-widest uppercase">
-        Inicializando Satélite Hemisférico C4ISR...
+        Initializing Hemispheric C4ISR Reconnaissance...
       </span>
     </div>
   ),
@@ -102,7 +102,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -95.2,
     target_id: "MMSI-3678129",
     threat_type: "AIS_DARK_SHIP_OR_RENDEZVOUS",
-    metadata: { sog_knots: 1.8, status: "DARK_VESSEL_GOLFO" },
+    syndicate: "CLAN_DEL_GOLFO",
+    modal: "MARITIME_CONTAINER",
+    speed_knots: 14.2,
+    heading_deg: 320,
+    metadata: { sog_knots: 14.2, status: "DARK_VESSEL_GULF" },
   },
   {
     event_id: "init-02",
@@ -114,7 +118,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -106.35,
     target_id: "AIR-CLANDESTINE-88",
     threat_type: "LOW_ALT_CLANDESTINE_FLIGHT",
-    metadata: { altitude_ft: 520, velocity_knots: 115 },
+    syndicate: "SINALOA_CARTEL",
+    modal: "CLANDESTINE_AIRCRAFT",
+    speed_knots: 125,
+    heading_deg: 15,
+    metadata: { altitude_ft: 520, velocity_knots: 125 },
   },
   {
     event_id: "init-03",
@@ -126,6 +134,10 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -99.5,
     target_id: "POE-LAREDO",
     threat_type: "NARCOTICS_CORRIDOR_SURGE",
+    syndicate: "SINALOA_CARTEL",
+    modal: "HIGHWAY_FREIGHT",
+    speed_knots: 45,
+    heading_deg: 10,
     metadata: { corridor: "I-35 Corridor", risk_24h: 0.91 },
   },
   {
@@ -138,7 +150,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -98.49,
     target_id: "FUGITIVE-FBI-TX09",
     threat_type: "FBI_WANTED_FUGITIVE_SIGHTING",
-    metadata: { hit: "I-10 San Antonio", face_score: 0.96 },
+    syndicate: "CJNG",
+    modal: "HIGHWAY_FREIGHT",
+    speed_knots: 65,
+    heading_deg: 60,
+    metadata: { hit: "I-10 San Antonio Junction", face_score: 0.96 },
   },
   {
     event_id: "init-05",
@@ -150,7 +166,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -79.8,
     target_id: "JIATF-NARCO-SUB",
     threat_type: "SEMI_SUBMERSIBLE_VESSEL",
-    metadata: { origin: "Tumaco / Colômbia", theater: "Pacífico Leste" },
+    syndicate: "CLAN_DEL_GOLFO",
+    modal: "SEMI_SUBMERSIBLE",
+    speed_knots: 8.5,
+    heading_deg: 340,
+    metadata: { origin: "Tumaco / Colombia", theater: "Eastern Pacific" },
   },
   {
     event_id: "init-06",
@@ -162,7 +182,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -68.4,
     target_id: "CARIBBEAN-GO-FAST",
     threat_type: "CARIBBEAN_NARCO_INTERCEPT",
-    metadata: { corridor: "Passagem de Mona (Caribe)" },
+    syndicate: "TREN_DE_ARAGUA",
+    modal: "SEMI_SUBMERSIBLE",
+    speed_knots: 38,
+    heading_deg: 310,
+    metadata: { corridor: "Mona Passage (Caribbean)" },
   },
   {
     event_id: "init-07",
@@ -174,7 +198,11 @@ const INITIAL_THREATS: ThreatAlert[] = [
     longitude: -46.3,
     target_id: "SANTOS-CARGO-BR",
     threat_type: "MARITIME_CONTAINER_ANOMALY",
-    metadata: { port: "Porto de Santos / Brasil", destination: "Houston" },
+    syndicate: "PCC",
+    modal: "MARITIME_CONTAINER",
+    speed_knots: 19.5,
+    heading_deg: 40,
+    metadata: { port: "Port of Santos / Brazil", destination: "Houston" },
   },
 ];
 
@@ -190,7 +218,7 @@ const INITIAL_HANDOFFS: JurisdictionHandoff[] = [
     last_known_lat: 26.04,
     last_known_lon: -97.14,
     reason:
-      "Embarcação rápida encalhou em South Padre Island; jurisdição transferida da Guarda Costeira (Anel 1) para a Patrulha de Fronteira CBP (Anel 2).",
+      "Go-fast vessel ran aground on South Padre Island; tactical jurisdiction handed off from USCG (Ring 1) to CBP Border Patrol (Ring 2).",
   },
   {
     handoff_id: "hd-02",
@@ -203,7 +231,20 @@ const INITIAL_HANDOFFS: JurisdictionHandoff[] = [
     last_known_lat: 32.22,
     last_known_lon: -110.97,
     reason:
-      "Comboio ingressou na rodovia interestadual I-10 em Tucson; custódia transferida para força-tarefa FBI / DEA (Anel 3).",
+      "Convoy entered Interstate I-10 in Tucson; command custody transferred to joint FBI / DEA strike force (Ring 3).",
+  },
+  {
+    handoff_id: "hd-03",
+    timestamp: new Date().toISOString(),
+    target_id: "CONTAINER-PCC-SANTOS",
+    from_ring: "RING_1_MARITIME",
+    to_ring: "RING_1_MARITIME",
+    from_agency: "PF_BR",
+    to_agency: "ACP_PA",
+    last_known_lat: 8.95,
+    last_known_lon: -79.56,
+    reason:
+      "PCC container vessel entered Miraflores Locks; jurisdiction transferred from Brazilian Federal Police to ACP and USCG liaison.",
   },
 ];
 
@@ -218,9 +259,13 @@ export default function CommandCenterPage() {
   const [handoffs, setHandoffs] = useState<JurisdictionHandoff[]>(INITIAL_HANDOFFS);
   const [selectedTarget, setSelectedTarget] = useState<ThreatAlert | null>(null);
   const [ringFilter, setRingFilter] = useState<string>("ALL");
-  const [cameraPreset, setCameraPreset] = useState<CameraPreset>("americas");
+  const [syndicateFilter, setSyndicateFilter] = useState<string>("ALL");
+  const [modalFilter, setModalFilter] = useState<string>("ALL");
+  const [cameraPreset, setCameraPreset] = useState<CameraPreset>("panamerican");
   const [sidebarTab, setSidebarTab] = useState<"targets" | "handoffs">("targets");
   const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [isSimulatingPanam, setIsSimulatingPanam] = useState<boolean>(false);
+  const [authorizedHandoffs, setAuthorizedHandoffs] = useState<string[]>([]);
 
   // Microservices Mesh State
   const [microservices, setMicroservices] = useState<MicroserviceInfo[]>([]);
@@ -238,7 +283,7 @@ export default function CommandCenterPage() {
   >([
     {
       role: "assistant",
-      text: "**[COPILOTO C4ISR PRONTO]**\nConectado à malha de 7 microsserviços (Portas `8000`–`8006`), PostGIS Spatial Engine e Qdrant Vector DB.\n\nSelecione um comando rápido ou digite sua consulta tática abaixo.",
+      text: "**[C4ISR COPILOT ACTIVE]**\nConnected to 7-service mesh (Ports `8000`–`8006`), PostGIS Spatial Sharding, and Qdrant Vector Engine.\n\nSelect a quick command or enter your tactical intelligence query below.",
     },
   ]);
   const [copilotLoading, setCopilotLoading] = useState<boolean>(false);
@@ -377,17 +422,45 @@ export default function CommandCenterPage() {
         ...prev,
         {
           role: "assistant",
-          text: "Erro de comunicação com o Gateway C2 (`http://localhost:8000`).",
+          text: "Communication timeout with C2 Tactical Gateway (`http://localhost:8000`).",
         },
       ]);
     }
     setCopilotLoading(false);
   };
 
-  // Filtered Threats
-  const filteredThreats = threats.filter(
-    (t) => ringFilter === "ALL" || t.ring === ringFilter
-  );
+  // 6. Simulate Pan-American Transnational Corridor Passage
+  const handleSimulatePanamerican = async () => {
+    setIsSimulatingPanam(true);
+    try {
+      const res = await fetch(`${gatewayUrl}/api/v1/panamerican/corridor/simulate`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.handoffs?.length) {
+        setHandoffs((prev) => [...data.handoffs, ...prev].slice(0, 30));
+      }
+    } catch {}
+    setIsSimulatingPanam(false);
+  };
+
+  // 7. Authorize Cross-Agency Interception Order
+  const handleAuthorizeHandoff = async (handoffId: string) => {
+    setAuthorizedHandoffs((prev) => [...prev, handoffId]);
+    try {
+      await fetch(`${gatewayUrl}/api/v1/handoffs/${handoffId}/authorize`, {
+        method: "POST",
+      });
+    } catch {}
+  };
+
+  // Filtered Threats across Defense Rings, Syndicates, and Modals
+  const filteredThreats = threats.filter((t) => {
+    if (ringFilter !== "ALL" && t.ring !== ringFilter) return false;
+    if (syndicateFilter !== "ALL" && t.syndicate && t.syndicate !== syndicateFilter) return false;
+    if (modalFilter !== "ALL" && t.modal && t.modal !== modalFilter) return false;
+    return true;
+  });
 
   const onlineServicesCount =
     microservices.filter((m) => m.status === "ONLINE").length || 7;
@@ -409,11 +482,11 @@ export default function CommandCenterPage() {
                 FRONTIER-OS
               </span>
               <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold">
-                C4ISR v2.4
+                C4ISR v2.5
               </span>
             </div>
             <p className="text-[10px] text-slate-400 hidden sm:block">
-              Comando Hemisférico Integrado — EUA & América do Sul
+              Integrated Hemispheric Command — United States & Latin America
             </p>
           </div>
         </div>
@@ -429,7 +502,7 @@ export default function CommandCenterPage() {
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>Teatro de Operações</span>
+            <span>Theater of Operations</span>
           </button>
 
           <button
@@ -441,7 +514,7 @@ export default function CommandCenterPage() {
             }`}
           >
             <Server className="w-3.5 h-3.5" />
-            <span>Microsserviços ({onlineServicesCount}/7)</span>
+            <span>Microservices ({onlineServicesCount}/7)</span>
           </button>
 
           <button
@@ -453,7 +526,7 @@ export default function CommandCenterPage() {
             }`}
           >
             <Bot className="w-3.5 h-3.5" />
-            <span>Copiloto IA</span>
+            <span>AI Copilot</span>
           </button>
 
           <button
@@ -465,7 +538,7 @@ export default function CommandCenterPage() {
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Dados Oficiais EUA</span>
+            <span>Official US Data</span>
           </button>
         </nav>
 
@@ -478,14 +551,14 @@ export default function CommandCenterPage() {
               }`}
             />
             <span className="font-mono text-slate-300">
-              {wsConnected ? "STREAM C2 ATIVO" : "MODO LOCAL"}
+              {wsConnected ? "ACTIVE C2 STREAM" : "LOCAL RECON MODE"}
             </span>
           </div>
         </div>
       </header>
 
       {/* =====================================================================
-          VIEW 1: TEATRO DE OPERAÇÕES (Clean Full-Screen Map + Focused Sidebar)
+          VIEW 1: THEATER OF OPERATIONS (Clean Full-Screen Map + Focused Sidebar)
          ===================================================================== */}
       {activeView === "operations" && (
         <div className="flex-1 flex overflow-hidden relative">
@@ -494,7 +567,7 @@ export default function CommandCenterPage() {
             {/* Ring Filter Selector (3 Defense Rings) */}
             <div className="p-3 border-b border-slate-800/80">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                Filtro por Anel de Defesa
+                Defense Ring Primacy
               </div>
               <div className="grid grid-cols-4 gap-1">
                 <button
@@ -505,7 +578,7 @@ export default function CommandCenterPage() {
                       : "bg-[#060a12] text-slate-400 hover:text-white border border-slate-800"
                   }`}
                 >
-                  Todos ({threats.length})
+                  All ({threats.length})
                 </button>
                 <button
                   onClick={() => setRingFilter("RING_1_MARITIME")}
@@ -515,7 +588,7 @@ export default function CommandCenterPage() {
                       : "bg-[#060a12] text-sky-400 hover:bg-sky-500/10 border border-slate-800"
                   }`}
                 >
-                  Anel 1
+                  Ring 1
                 </button>
                 <button
                   onClick={() => setRingFilter("RING_2_FEDERAL")}
@@ -525,7 +598,7 @@ export default function CommandCenterPage() {
                       : "bg-[#060a12] text-amber-400 hover:bg-amber-500/10 border border-slate-800"
                   }`}
                 >
-                  Anel 2
+                  Ring 2
                 </button>
                 <button
                   onClick={() => setRingFilter("RING_3_INTERSTATE")}
@@ -535,12 +608,12 @@ export default function CommandCenterPage() {
                       : "bg-[#060a12] text-red-400 hover:bg-red-500/10 border border-slate-800"
                   }`}
                 >
-                  Anel 3
+                  Ring 3
                 </button>
               </div>
             </div>
 
-            {/* Sub-Tabs: Alvos vs Handoffs */}
+            {/* Sub-Tabs: Targets vs Handoffs */}
             <div className="flex border-b border-slate-800/80 text-xs font-semibold">
               <button
                 onClick={() => setSidebarTab("targets")}
@@ -550,7 +623,7 @@ export default function CommandCenterPage() {
                     : "border-transparent text-slate-400 hover:text-slate-200"
                 }`}
               >
-                🎯 Alvos Monitorados ({filteredThreats.length})
+                🎯 Monitored Targets ({filteredThreats.length})
               </button>
               <button
                 onClick={() => setSidebarTab("handoffs")}
@@ -590,11 +663,18 @@ export default function CommandCenterPage() {
                         <span className="font-mono font-bold text-xs text-white">
                           {t.target_id}
                         </span>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${ringBadge}`}
-                        >
-                          {t.lead_agency}
-                        </span>
+                        <div className="flex items-center space-x-1">
+                          {t.syndicate && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              {t.syndicate}
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${ringBadge}`}
+                          >
+                            {t.lead_agency}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-[11px] text-slate-300 font-medium truncate">
                         {t.threat_type.replace(/_/g, " ")}
@@ -604,105 +684,201 @@ export default function CommandCenterPage() {
                           {t.latitude.toFixed(2)}°, {t.longitude.toFixed(2)}°
                         </span>
                         <span className="text-rose-400 font-semibold">
-                          {(t.severity * 100).toFixed(0)}% Risco
+                          {(t.severity * 100).toFixed(0)}% Risk
                         </span>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                handoffs.map((h, i) => (
-                  <div
-                    key={h.handoff_id || i}
-                    className="p-3 rounded-lg bg-[#060a12] border border-slate-800 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-xs text-amber-400">
-                        {h.target_id}
-                      </span>
-                      <div className="flex items-center space-x-1 text-[10px] font-bold">
-                        <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">
-                          {h.from_agency}
+                handoffs.map((h, i) => {
+                  const isAuth = authorizedHandoffs.includes(h.handoff_id || `${i}`);
+                  return (
+                    <div
+                      key={h.handoff_id || i}
+                      className="p-3 rounded-lg bg-[#060a12] border border-slate-800 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-xs text-amber-400">
+                          {h.target_id}
                         </span>
-                        <ArrowRight className="w-3 h-3 text-slate-500" />
-                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                          {h.to_agency}
-                        </span>
+                        <div className="flex items-center space-x-1 text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">
+                            {h.from_agency}
+                          </span>
+                          <ArrowRight className="w-3 h-3 text-slate-500" />
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                            {h.to_agency}
+                          </span>
+                        </div>
                       </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        {h.reason}
+                      </p>
+                      <button
+                        onClick={() => handleAuthorizeHandoff(h.handoff_id || `${i}`)}
+                        disabled={isAuth}
+                        className={`w-full py-1 rounded text-[10px] font-bold uppercase transition ${
+                          isAuth
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            : "bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30"
+                        }`}
+                      >
+                        {isAuth ? "✓ Interception Authorized" : "Authorize Interception"}
+                      </button>
                     </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      {h.reason}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </aside>
 
           {/* MAIN MAP WORKSPACE */}
           <main className="flex-1 relative h-full">
-            {/* TOP-LEFT CAMERA PRESETS BAR (Clean Floating Pills) */}
-            <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-1.5 bg-[#090e17]/90 backdrop-blur-md border border-slate-800 p-1.5 rounded-xl shadow-2xl">
+            {/* TOP COMMAND BAR (8 THEATER PRESETS + SYNDICATE & MODAL FILTERS + SIMULATION) */}
+            <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-2 bg-[#090e17]/95 backdrop-blur-md border border-slate-800 p-2 rounded-xl shadow-2xl max-w-[calc(100vw-360px)]">
+              {/* Theater Buttons */}
+              <div className="flex items-center space-x-1 pr-2 border-r border-slate-800 overflow-x-auto">
+                <button
+                  onClick={() => setCameraPreset("panamerican")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "panamerican" || cameraPreset === "americas"
+                      ? "bg-sky-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🌎 Pan-American
+                </button>
+                <button
+                  onClick={() => setCameraPreset("usa")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "usa" || cameraPreset === "us"
+                      ? "bg-sky-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇺🇸 USA
+                </button>
+                <button
+                  onClick={() => setCameraPreset("brazil")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "brazil" || cameraPreset === "south_america"
+                      ? "bg-emerald-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇧🇷 Brazil
+                </button>
+                <button
+                  onClick={() => setCameraPreset("colombia")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "colombia"
+                      ? "bg-yellow-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇨🇴 Colombia
+                </button>
+                <button
+                  onClick={() => setCameraPreset("mexico")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "mexico" || cameraPreset === "border"
+                      ? "bg-amber-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇲🇽 Mexico
+                </button>
+                <button
+                  onClick={() => setCameraPreset("panama")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "panama"
+                      ? "bg-cyan-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇵🇦 Panama
+                </button>
+                <button
+                  onClick={() => setCameraPreset("chile")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "chile"
+                      ? "bg-rose-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇨🇱 Chile
+                </button>
+                <button
+                  onClick={() => setCameraPreset("argentina")}
+                  className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+                    cameraPreset === "argentina"
+                      ? "bg-blue-500 text-slate-950 font-bold"
+                      : "text-slate-300 hover:bg-slate-800"
+                  }`}
+                >
+                  🇦🇷 Argentina
+                </button>
+              </div>
+
+              {/* Syndicate Filter Dropdown */}
+              <div className="flex items-center space-x-1.5 text-[11px]">
+                <span className="text-slate-400 font-mono">Syndicate:</span>
+                <select
+                  value={syndicateFilter}
+                  onChange={(e) => setSyndicateFilter(e.target.value)}
+                  className="bg-[#060a12] border border-slate-700 text-slate-200 rounded px-2 py-1 text-[11px] font-semibold focus:outline-none focus:border-sky-500"
+                >
+                  <option value="ALL">All Syndicates</option>
+                  <option value="PCC">PCC (Primeiro Comando)</option>
+                  <option value="CV">CV (Comando Vermelho)</option>
+                  <option value="SINALOA_CARTEL">Sinaloa Cartel</option>
+                  <option value="CJNG">CJNG (Jalisco)</option>
+                  <option value="CLAN_DEL_GOLFO">Clan del Golfo</option>
+                  <option value="TREN_DE_ARAGUA">Tren de Aragua</option>
+                </select>
+              </div>
+
+              {/* Modal Filter Dropdown */}
+              <div className="flex items-center space-x-1.5 text-[11px]">
+                <span className="text-slate-400 font-mono">Modal:</span>
+                <select
+                  value={modalFilter}
+                  onChange={(e) => setModalFilter(e.target.value)}
+                  className="bg-[#060a12] border border-slate-700 text-slate-200 rounded px-2 py-1 text-[11px] font-semibold focus:outline-none focus:border-sky-500"
+                >
+                  <option value="ALL">All Modals</option>
+                  <option value="MARITIME_CONTAINER">Maritime Container</option>
+                  <option value="SEMI_SUBMERSIBLE">Semi-Submersible</option>
+                  <option value="RIVERINE_BARGE">Riverine Barge</option>
+                  <option value="CLANDESTINE_AIRCRAFT">Clandestine Aircraft</option>
+                  <option value="HIGHWAY_FREIGHT">Highway Freight</option>
+                  <option value="PANAMA_CANAL_TRANSIT">Panama Canal Transit</option>
+                </select>
+              </div>
+
+              {/* Simulation Trigger Button */}
               <button
-                onClick={() => setCameraPreset("americas")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  cameraPreset === "americas"
-                    ? "bg-sky-500 text-slate-950 font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
-                }`}
+                onClick={handleSimulatePanamerican}
+                disabled={isSimulatingPanam}
+                className="flex items-center space-x-1 px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition disabled:opacity-50"
               >
-                🌎 Américas (Norte + Sul)
-              </button>
-              <button
-                onClick={() => setCameraPreset("south_america")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  cameraPreset === "south_america"
-                    ? "bg-emerald-500 text-slate-950 font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                🇧🇷 América do Sul
-              </button>
-              <button
-                onClick={() => setCameraPreset("us")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  cameraPreset === "us"
-                    ? "bg-sky-500 text-slate-950 font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                🇺🇸 Estados Unidos (50 Estados)
-              </button>
-              <button
-                onClick={() => setCameraPreset("border")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  cameraPreset === "border"
-                    ? "bg-amber-500 text-slate-950 font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                🌵 Fronteira EUA-México
-              </button>
-              <button
-                onClick={() => setCameraPreset("caribbean")}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                  cameraPreset === "caribbean"
-                    ? "bg-teal-500 text-slate-950 font-bold"
-                    : "text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                🌊 Caribe & Golfo
+                <Zap className={`w-3.5 h-3.5 ${isSimulatingPanam ? "animate-spin" : ""}`} />
+                <span>{isSimulatingPanam ? "SIMULATING..." : "RUN CORRIDOR SIM"}</span>
               </button>
             </div>
 
-            {/* Interactive Leaflet Map */}
+            {/* Interactive Tactical Map with 3-Level Semantic Zoom */}
             <TacticalMap
               threats={threats}
               selectedTarget={selectedTarget}
               onSelectTarget={setSelectedTarget}
               ringFilter={ringFilter}
+              syndicateFilter={syndicateFilter}
+              modalFilter={modalFilter}
               cameraPreset={cameraPreset}
               onPresetChange={setCameraPreset}
+              onAuthorizeHandoff={handleAuthorizeHandoff}
             />
 
             {/* RIGHT SLIDE-OVER TARGET DOSSIER (Only visible when a target is selected) */}
@@ -711,7 +887,7 @@ export default function CommandCenterPage() {
                 <div className="flex items-start justify-between border-b border-slate-800 pb-2.5">
                   <div>
                     <span className="text-[10px] font-mono uppercase text-sky-400">
-                      Dossiê de Alvo Tático
+                      Tactical Target Dossier
                     </span>
                     <h3 className="font-mono font-bold text-base text-white">
                       {selectedTarget.target_id}
@@ -727,32 +903,48 @@ export default function CommandCenterPage() {
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Classificação:</span>
+                    <span className="text-slate-400">Classification:</span>
                     <span className="font-semibold text-white">
                       {selectedTarget.threat_type.replace(/_/g, " ")}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Agência Líder:</span>
+                    <span className="text-slate-400">Lead Agency:</span>
                     <span className="font-bold text-sky-400">
                       {selectedTarget.lead_agency}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Anel de Defesa:</span>
+                    <span className="text-slate-400">Defense Ring:</span>
                     <span className="font-mono text-amber-400">
                       {selectedTarget.ring}
                     </span>
                   </div>
+                  {selectedTarget.syndicate && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Attributed Syndicate:</span>
+                      <span className="font-semibold text-purple-300">
+                        {selectedTarget.syndicate}
+                      </span>
+                    </div>
+                  )}
+                  {selectedTarget.modal && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Transport Modal:</span>
+                      <span className="font-mono text-cyan-300">
+                        {selectedTarget.modal}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Coordenadas:</span>
+                    <span className="text-slate-400">Coordinates:</span>
                     <span className="font-mono text-slate-200">
                       {selectedTarget.latitude.toFixed(4)}°,{" "}
                       {selectedTarget.longitude.toFixed(4)}°
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Severidade IA:</span>
+                    <span className="text-slate-400">AI Risk Severity:</span>
                     <span className="font-bold text-rose-400">
                       {(selectedTarget.severity * 100).toFixed(1)}%
                     </span>
@@ -764,13 +956,21 @@ export default function CommandCenterPage() {
                     onClick={() => {
                       setActiveView("copilot");
                       handleSendCopilot(
-                        `Gere um plano de interceptação tática para o alvo ${selectedTarget.target_id} (${selectedTarget.threat_type}) sob jurisdição da ${selectedTarget.lead_agency}`
+                        `Generate tactical interdiction plan for target ${selectedTarget.target_id} (${selectedTarget.threat_type}) under ${selectedTarget.lead_agency} jurisdiction.`
                       );
                     }}
                     className="w-full py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-1.5 transition"
                   >
                     <Bot className="w-3.5 h-3.5" />
-                    <span>Gerar Plano de Interceptação IA</span>
+                    <span>Generate AI Interception Plan</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleAuthorizeHandoff(selectedTarget.target_id)}
+                    className="w-full py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center space-x-1.5 transition"
+                  >
+                    <Crosshair className="w-3.5 h-3.5" />
+                    <span>Authorize Jurisdiction Handoff</span>
                   </button>
                 </div>
               </div>
@@ -780,7 +980,7 @@ export default function CommandCenterPage() {
       )}
 
       {/* =====================================================================
-          VIEW 2: MALHA DE MICROSSERVIÇOS (Service Mesh 8000-8006 + Live Trigger)
+          VIEW 2: C4ISR MICROSERVICES MESH (Services 8000-8006 + Live Trigger)
          ===================================================================== */}
       {activeView === "microservices" && (
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#060a12]">
@@ -791,13 +991,13 @@ export default function CommandCenterPage() {
                 <h2 className="text-lg font-bold text-white flex items-center space-x-2">
                   <Server className="w-5 h-5 text-emerald-400" />
                   <span>
-                    Malha de Microsserviços C4ISR (7 Serviços + 4 Motores de Dados)
+                    C4ISR Microservices Mesh (7 Services + 4 Core Data Engines)
                   </span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Todos os microsserviços operam de forma isolada com{" "}
+                  All microservices execute independently using{" "}
                   <code className="text-sky-400">InferenceProcessPool</code>{" "}
-                  (multiprocessing + locks) e comunicam-se via API Gateway e Redpanda Kafka.
+                  (spawn multiprocessing + locks + H3 sharding) and communicate via C2 Gateway and Redpanda Kafka.
                 </p>
               </div>
               <button
@@ -807,7 +1007,7 @@ export default function CommandCenterPage() {
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${meshLoading ? "animate-spin" : ""}`}
                 />
-                <span>Atualizar Telemetria da Malha</span>
+                <span>Refresh Mesh Telemetry</span>
               </button>
             </div>
 
@@ -861,7 +1061,7 @@ export default function CommandCenterPage() {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Latência HTTP:</span>
+                          <span className="text-slate-500">HTTP Latency:</span>
                           <span className="font-mono text-emerald-400">
                             {svc.latency_ms !== null ? `${svc.latency_ms} ms` : "—"}
                           </span>
@@ -877,8 +1077,8 @@ export default function CommandCenterPage() {
                       <Play className="w-3.5 h-3.5" />
                       <span>
                         {isRunning
-                          ? "Executando Inferência..."
-                          : "Executar Inferência ao Vivo"}
+                          ? "Executing DL Inference..."
+                          : "Execute Live DL Inference"}
                       </span>
                     </button>
                   </div>
@@ -893,14 +1093,14 @@ export default function CommandCenterPage() {
                   <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400">
                     <Terminal className="w-4 h-4" />
                     <span>
-                      RESPOSTA EM TEMPO REAL DO MICROSSERVIÇO (EVENTO PUBLICADO NO MAPA)
+                      MICROSERVICE REAL-TIME DL OUTPUT (EVENT BROADCAST TO TACTICAL MAP)
                     </span>
                   </div>
                   <button
                     onClick={() => setLastInferenceOutput(null)}
                     className="text-xs text-slate-400 hover:text-white"
                   >
-                    Fechar
+                    Dismiss
                   </button>
                 </div>
                 <pre className="bg-[#05080f] p-3 rounded-lg text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-60">
@@ -913,7 +1113,7 @@ export default function CommandCenterPage() {
             <div className="bg-[#090e17] border border-slate-800 rounded-xl p-5 space-y-3">
               <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                 <Cpu className="w-4 h-4 text-sky-400" />
-                <span>Camada de Dados & Locks Distribuídos (Containers Ativos)</span>
+                <span>Stateful Data Mesh & Distributed Concurrency Locks</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {infraServices.map((inf) => (
@@ -943,11 +1143,11 @@ export default function CommandCenterPage() {
                   <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                     <Zap className="w-4 h-4 text-amber-400" />
                     <span>
-                      Suíte de Treinamento GPU no Google Colab (PyTorch AMP + Exportação ONNX)
+                      Google Colab GPU Training Suite (PyTorch AMP + ONNX Runtime Export)
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Notebooks prontos em <code className="text-amber-300">notebooks/colab/</code> configurados para GPUs NVIDIA T4 / L4 / A100 com download automático dos pesos <code className="text-sky-300">.onnx</code>.
+                    Production-ready notebooks in <code className="text-amber-300">notebooks/colab/</code> optimized for NVIDIA T4 / L4 / A100 GPUs with automated <code className="text-sky-300">.onnx</code> weight export.
                   </p>
                 </div>
                 <a
@@ -956,7 +1156,7 @@ export default function CommandCenterPage() {
                   rel="noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
                 >
-                  🚀 Abrir Master Notebook no Colab
+                  🚀 Open Master Suite in Google Colab
                 </a>
               </div>
 
@@ -1015,7 +1215,7 @@ export default function CommandCenterPage() {
       )}
 
       {/* =====================================================================
-          VIEW 3: COPILOTO TÁTICO IA (Multi-Agent RAG)
+          VIEW 3: C4ISR TACTICAL AI COPILOT (Multi-Agent RAG)
          ===================================================================== */}
       {activeView === "copilot" && (
         <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto p-6 overflow-hidden">
@@ -1025,32 +1225,42 @@ export default function CommandCenterPage() {
               <button
                 onClick={() =>
                   handleSendCopilot(
-                    "Gere um SITREP completo do Anel 1 Marítimo e embarcações Dark Ship"
+                    "Generate a comprehensive SITREP for Ring 1 Maritime and dark rendezvous vessels."
                   )
                 }
                 className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-sky-300 transition"
               >
-                🚢 SITREP Anel 1 (Marítimo)
+                🚢 Ring 1 Maritime SITREP
               </button>
               <button
                 onClick={() =>
                   handleSendCopilot(
-                    "Qual a previsão de risco de narcóticos nos corredores de Laredo e El Paso?"
+                    "Forecast high-risk trafficking corridor surges along the Laredo and El Paso POEs."
                   )
                 }
                 className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-amber-300 transition"
               >
-                ⚠️ Corredores DEA / CBP
+                ⚠️ DEA / CBP Narcotics Forecast
               </button>
               <button
                 onClick={() =>
                   handleSendCopilot(
-                    "Listar alertas de fugitivos do FBI Wanted identificados nas interestaduais I-10 e I-35"
+                    "List FBI Wanted fugitive sightings detected along Interstate I-10 and I-35."
                   )
                 }
                 className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-rose-300 transition"
               >
-                🚨 Procurados FBI (Anel 3)
+                🚨 FBI Wanted Sightings (Ring 3)
+              </button>
+              <button
+                onClick={() =>
+                  handleSendCopilot(
+                    "Summarize transnational multimodal logistics routes for PCC and Comando Vermelho connecting Brazil to Panama and the US."
+                  )
+                }
+                className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-xs text-purple-300 transition"
+              >
+                🌎 Pan-American Syndicates (PCC / CV)
               </button>
             </div>
 
@@ -1070,7 +1280,7 @@ export default function CommandCenterPage() {
               ))}
               {copilotLoading && (
                 <div className="text-xs text-sky-400 font-mono animate-pulse px-2">
-                  Consultando agentes PostGIS, Qdrant e ST-GNN...
+                  Querying PostGIS Spatial Shards, Qdrant Vector DB, and ST-GNN models...
                 </div>
               )}
             </div>
@@ -1082,7 +1292,7 @@ export default function CommandCenterPage() {
                 value={copilotPrompt}
                 onChange={(e) => setCopilotPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendCopilot()}
-                placeholder="Pergunte ao Copiloto C4ISR sobre alvos, rotas da América do Sul, fugitivos do FBI ou apreensões..."
+                placeholder="Ask C4ISR Copilot about targets, South American syndicates, FBI wanted persons, or seizures..."
                 className="flex-1 bg-[#090e17] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
               />
               <button
@@ -1090,7 +1300,7 @@ export default function CommandCenterPage() {
                 className="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center space-x-1"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Enviar</span>
+                <span>Send</span>
               </button>
             </div>
           </div>
@@ -1098,7 +1308,7 @@ export default function CommandCenterPage() {
       )}
 
       {/* =====================================================================
-          VIEW 4: DADOS OFICIAIS DO GOVERNO DOS EUA (FBI / OpenSky / CBP)
+          VIEW 4: OFFICIAL US GOVERNMENT DATA (FBI / OpenSky / CBP)
          ===================================================================== */}
       {activeView === "govdata" && (
         <div className="flex-1 overflow-y-auto p-6 bg-[#060a12]">
@@ -1122,7 +1332,7 @@ export default function CommandCenterPage() {
                     : "bg-[#090e17] text-slate-300 border border-slate-800"
                 }`}
               >
-                ✈️ Radar OpenSky ({flightsList.length})
+                ✈️ OpenSky Airspace Radar ({flightsList.length})
               </button>
               <button
                 onClick={() => setGovSubTab("cbp")}
@@ -1132,7 +1342,7 @@ export default function CommandCenterPage() {
                     : "bg-[#090e17] text-slate-300 border border-slate-800"
                 }`}
               >
-                📦 Apreensões CBP (Fentanil / Cocaína)
+                📦 CBP Seizure Metrics (Fentanyl / Cocaine)
               </button>
             </div>
 
@@ -1173,10 +1383,10 @@ export default function CommandCenterPage() {
                     <tr>
                       <th className="p-3">ICAO24</th>
                       <th className="p-3">Callsign</th>
-                      <th className="p-3">País</th>
-                      <th className="p-3">Posição</th>
+                      <th className="p-3">Origin Country</th>
+                      <th className="p-3">Position</th>
                       <th className="p-3">Altitude (m)</th>
-                      <th className="p-3">Velocidade (m/s)</th>
+                      <th className="p-3">Velocity (m/s)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">

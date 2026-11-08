@@ -115,16 +115,26 @@ def _run_flight_worker(vector: List[float]) -> float:
 class InferenceProcessPool:
     """
     Manages a persistent ProcessPoolExecutor using spawn context,
-    with shared locks for concurrent GPU and memory safety.
+    with shared locks for concurrent GPU and memory safety,
+    adaptive backpressure control, and dynamic batching under load.
     """
 
     _instance: Optional["InferenceProcessPool"] = None
 
-    def __init__(self, max_workers: Optional[int] = None, max_concurrent_gpu: int = 4):
+    def __init__(
+        self,
+        max_workers: Optional[int] = None,
+        max_concurrent_gpu: int = 4,
+        max_queue_depth: int = 500,
+        backpressure_threshold: int = 400,
+    ):
         self.ctx = mp.get_context("spawn")
         self.max_workers = max_workers or max(1, (os.cpu_count() or 4) - 1)
         self.lock = self.ctx.Lock()
         self.semaphore = self.ctx.BoundedSemaphore(max_concurrent_gpu)
+        self.max_queue_depth = max_queue_depth
+        self.backpressure_threshold = backpressure_threshold
+        self._active_tasks = 0
 
         self.executor = ProcessPoolExecutor(
             max_workers=self.max_workers,
@@ -140,10 +150,38 @@ class InferenceProcessPool:
             cls._instance = cls(max_workers=max_workers)
         return cls._instance
 
+    @property
+    def is_backpressure_active(self) -> bool:
+        """Indicates if task queue is approaching saturation."""
+        return self._active_tasks >= self.backpressure_threshold
+
+    def get_pool_telemetry(self) -> Dict[str, Any]:
+        """Telemetry snapshot for KEDA scaling and health monitors."""
+        return {
+            "max_workers": self.max_workers,
+            "active_tasks": self._active_tasks,
+            "max_queue_depth": self.max_queue_depth,
+            "backpressure_threshold": self.backpressure_threshold,
+            "backpressure_active": self.is_backpressure_active,
+            "load_ratio": round(self._active_tasks / max(1, self.max_queue_depth), 3),
+        }
+
     async def execute_task(self, func: Callable[..., Any], *args: Any) -> Any:
-        """Asynchronously schedule work on the dedicated ProcessPoolExecutor."""
+        """
+        Asynchronously schedule work on the dedicated ProcessPoolExecutor
+        with backpressure enforcement and task tracking.
+        """
+        if self._active_tasks >= self.max_queue_depth:
+            raise RuntimeError(
+                f"BackpressureCircuitBreakerActive: pool saturated ({self._active_tasks}/{self.max_queue_depth})"
+            )
+
+        self._active_tasks += 1
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self.executor, func, *args)
+        try:
+            return await loop.run_in_executor(self.executor, func, *args)
+        finally:
+            self._active_tasks = max(0, self._active_tasks - 1)
 
     async def infer_maritime_anomaly(self, features: List[List[float]]) -> float:
         """Execute maritime sequence trajectory inference off-thread."""
@@ -152,6 +190,25 @@ class InferenceProcessPool:
     async def infer_flight_anomaly(self, vector: List[float]) -> float:
         """Execute airspace flight pattern autoencoder inference off-thread."""
         return await self.execute_task(_run_flight_worker, vector)
+
+    async def execute_dynamic_batch(
+        self,
+        func: Callable[..., Any],
+        items: List[Any],
+        batch_size: int = 16,
+    ) -> List[Any]:
+        """
+        Adaptive dynamic batching: processes inputs in bounded chunks
+        to balance GPU throughput against pipeline latency.
+        """
+        # Under backpressure, adaptively reduce batch size to flush faster
+        effective_batch_size = max(4, batch_size // 2) if self.is_backpressure_active else batch_size
+        results = []
+        for i in range(0, len(items), effective_batch_size):
+            chunk = items[i : i + effective_batch_size]
+            chunk_results = await asyncio.gather(*(self.execute_task(func, item) for item in chunk))
+            results.extend(chunk_results)
+        return results
 
     def shutdown(self, wait: bool = True) -> None:
         """Graceful shutdown of process pool."""
